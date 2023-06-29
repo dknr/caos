@@ -1,16 +1,12 @@
 import { Application, Router } from "https://deno.land/x/oak@v12.1.0/mod.ts";
 import { openCaos } from "../store/mod.ts";
 import log from "../log.ts";
+import { withArgs, withDefaults } from "../cmd.ts";
 
 type ServeOpts = {
   home: string;
   path: string;
 }
-
-const withArgs = <T>(fn: (opts?: Partial<T>) => void) => (args: string[]) => fn();
-
-const withDefaults = <T>(defaults: T, fn: (opts: T) => void) => 
-  (partialOpts?: Partial<T>) => fn({...defaults, ...partialOpts});
 
 const serve = (opts: ServeOpts) => {
   const app = new Application();
@@ -18,7 +14,7 @@ const serve = (opts: ServeOpts) => {
   const caos = openCaos({path: opts.path});
 
   router.get("/", (ctx) => {
-    ctx.response.status = 302;
+    ctx.response.status = 303;
     ctx.response.headers.set(
       "location",
       `/data/${opts.home}`,
@@ -37,10 +33,10 @@ const serve = (opts: ServeOpts) => {
   });
 
   router.get("/data/:addr", async (ctx) => {
-    const addr = ctx.params.addr;
+    const addr = ctx.params.addr;    
     const data = await caos.getData(addr);
-    const type = caos.getTag(addr, "type");
     if (data) {
+    const type = caos.getTag(addr, "type");
       ctx.response.headers.set(
         "content-type",
         type || "application/octet-stream",
@@ -71,11 +67,7 @@ const serve = (opts: ServeOpts) => {
   app.use(async (ctx, next) => {
     try {
       await next();
-      log(
-        `${ctx.response.status} ${
-          ctx.request.method.padStart(4)
-        } ${ctx.request.url.pathname}`,
-      );
+      log([ctx.response.status, ctx.request.method, ctx.request.url.pathname].join(' '));
     } catch {
       log(`ERR ${ctx.request.method.padStart(4)} ${ctx.request.url.pathname}`);
     }

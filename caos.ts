@@ -1,16 +1,18 @@
+import { CmdFn } from "./cmd.ts";
+import add from "./cmds/add.ts";
+import help from "./cmds/help.ts";
 import serve from "./cmds/serve.ts";
-
-type CmdFn = (args: string[]) => void;
-
-const help: CmdFn = () => console.log(
-`usage: caos <command> [options]
-commands: ${Object.keys(cmds).join(', ')}`
-);
 
 const cmd = Deno.args[0];
 const cmds: Record<string, CmdFn> = {
+  add,
   serve,
-  help
+  help: help(() => cmds),
 }
 
-cmds[cmd || 'help'](Deno.args.slice(1));
+const fn = cmds[cmd || 'help']
+if (fn) {
+  fn(Deno.args.slice(1));
+} else {
+  console.log(`command not found: ${cmd}`);
+}
