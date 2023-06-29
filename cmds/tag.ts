@@ -1,54 +1,6 @@
+import { CaosClient,buildClient } from "../client/mod.ts";
 import { CmdFn } from "../cmd.ts";
 import { CaosAddr, CaosTagKey, CaosTagValue, CaosTags } from "../types.ts";
-
-type ClientConfig = {
-  host: string;
-}
-type CaosClient = {
-  addr: {
-    all: (addr: CaosAddr) => Promise<CaosAddr[]>;
-  },
-  tags: {
-    all: (addr: CaosAddr) => Promise<CaosTags>;
-    get: (addr: CaosAddr, tag: CaosTagKey) => Promise<CaosTagValue | undefined>;
-    set: (addr: CaosAddr, tag: CaosTagKey, value: CaosTagValue) => Promise<void>;
-    del: (addr: CaosAddr, tag: CaosTagKey) => Promise<void>;
-  },
-}
-
-const buildClient = ({host}: ClientConfig): CaosClient => ({
-  addr: {
-    all: async (addr) => {
-      const res = await fetch(`${host}/addr/${addr}`);
-      return await res.json();
-    }
-  },
-  tags: {
-    all: async (addr) => {
-      const res = await fetch(`${host}/tags/${addr}`);
-      if (res.ok) {
-        return await res.json();
-      } else {
-        return {};
-      }
-    },
-    get: async (addr, tag) => {
-      const res = await fetch(`${host}/tags/${addr}/${tag}`);
-      if (res.ok) {
-        return await res.text();
-      }
-    },
-    set: async (addr, tag, value) => {
-      const res = await fetch(`${host}/tags/${addr}/${tag}`, {method: 'put', body: value});
-      if (!res.ok) {
-        throw new Error(`failed request: ${res.status} ${res.statusText}`);
-      }
-    },
-    del: async (addr, tag) => {
-      await fetch(`${host}/tags/${addr}/${tag}`, {method: 'delete'});
-    }
-  },
-});
 
 const assertArgsCount = (args: string[], min: number, max?: number) => {
   if (args.length < min) {
