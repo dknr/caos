@@ -2,8 +2,10 @@ import { Caos } from "../types.ts";
 import { CaosConfig } from "./config.ts";
 import {openCaosData} from "./data.ts";
 import {openCaosMeta} from "./meta.ts";
+import log from "../log.ts";
 
 export const openCaos = (config: CaosConfig): Caos => {
+  log(`opening caos: ${config.path}`);
   Deno.mkdirSync(config.path, {recursive: true});
   const data = openCaosData(config);
   const meta = openCaosMeta(config);
