@@ -21,22 +21,33 @@ const serve = (opts: ServeOpts) => {
     );
   });
 
+  router.get("/addr/:addr", (ctx) => {
+    const {addr} = ctx.params;
+    const addrs = caos.addr.all(addr);
+    ctx.response.body = addrs;
+    if (addrs.length > 1) {
+      ctx.response.status = 300;
+    } else if (addrs.length < 1) {
+      ctx.response.status = 404;
+    }
+  });
+
   router.post("/data", async (ctx) => {
     const data = ctx.request.body({ type: "stream" }).value;
-    const result = await caos.addData(data);
+    const result = await caos.data.add(data);
     ctx.response.body = result;
   });
   router.post("/data/:file", async (ctx) => {
     const data = ctx.request.body({ type: "stream" }).value;
-    const result = await caos.addData(data);
+    const result = await caos.data.add(data);
     ctx.response.body = result;
   });
 
   router.get("/data/:addr", async (ctx) => {
     const addr = ctx.params.addr;    
-    const data = await caos.getData(addr);
+    const data = await caos.data.get(addr);
     if (data) {
-    const type = caos.getTag(addr, "type");
+    const type = caos.tags.get(addr, "type");
       ctx.response.headers.set(
         "content-type",
         type || "application/octet-stream",
@@ -49,13 +60,13 @@ const serve = (opts: ServeOpts) => {
 
   router.get("/tags/:addr", (ctx) => {
     const addr = ctx.params.addr;
-    const tags = caos.getTags(addr);
+    const tags = caos.tags.all(addr);
     ctx.response.body = tags;
   });
 
   router.get("/tags/:addr/:tag", (ctx) => {
     const { addr, tag } = ctx.params;
-    const value = caos.getTag(addr, tag);
+    const value = caos.tags.get(addr, tag);
 
     if (value) {
       ctx.response.body = value;
@@ -64,12 +75,36 @@ const serve = (opts: ServeOpts) => {
     }
   });
 
+  router.put("/tags/:addr/:tag", async (ctx) => {
+    const { addr, tag } = ctx.params;
+    const value = await ctx.request.body({type: 'text'}).value;
+    if (value) {
+      if (caos.addr.has(addr)) {
+        caos.tags.set(addr, tag, value);
+        ctx.response.status = 204;
+      } else {
+        ctx.response.status = 404;
+      }
+    } else {
+      ctx.response.status = 400;
+    }
+  });
+
+  router.delete("/tags/:addr/:tag", async (ctx) => {
+    const { addr, tag } = ctx.params;
+    if (caos.addr.has(addr)) {
+      caos.tags.del(addr, tag);
+      ctx.response.status = 204;
+    }
+  })
+
   app.use(async (ctx, next) => {
     try {
       await next();
       log([ctx.response.status, ctx.request.method, ctx.request.url.pathname].join(' '));
-    } catch {
+    } catch(e) {
       log(`ERR ${ctx.request.method.padStart(4)} ${ctx.request.url.pathname}`);
+      throw e;
     }
   });
   app.use(router.routes());

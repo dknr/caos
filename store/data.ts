@@ -34,6 +34,17 @@ export const openCaosData = (config: CaosConfig) => {
 
       return {addr, size, type};
     },
+    del: async (addr: CaosAddr) => {
+      try {
+        await Deno.remove(nameFile(addr));
+      } catch (e) {
+        if (e instanceof Deno.errors.NotFound) {
+          return;
+        } else {
+          throw e;
+        }
+      }
+    },
     get: (addr: CaosAddr): Promise<CaosData | undefined> => Deno.open(nameFile(addr), {read: true})
       .then((file) => file.readable)
       .catch(() => undefined),

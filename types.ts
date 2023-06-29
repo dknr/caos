@@ -3,22 +3,35 @@ export type CaosData = ReadableStream<Uint8Array>;
 export type CaosTagKey = string;
 export type CaosTagValue = string;
 
-export type CaosTags = {[tag: string]: string};
+export type CaosTags = {[tag: CaosTagKey]: CaosTagValue};
 
-export type CaosRef = {
-  ref: string;
-  to: string;
-}
-export type CaosRefs = Array<CaosRef>;
+export type CaosRefType = string;
+export type CaosRefs = Array<{
+  ref: CaosRefType;
+  to: CaosAddr;
+}>;
 
 export type Caos = {
-  addData: (data: CaosData) => Promise<CaosAddr>;
-  setTag: (addr: CaosAddr, tag: CaosTagKey, value: CaosTagValue) => void;
-  addRef: (addr: CaosAddr, ref: CaosRef) => Promise<void>;
-  getData: (addr: CaosAddr) => Promise<CaosData | undefined>;
-  getTags: (addr: CaosAddr) => CaosTags;
-  getTag: (addr: CaosAddr, tag: CaosTagKey) => CaosTagValue | undefined;
-  getRefs: (addr: CaosAddr) => CaosRefs;
-  hasData: (addr: CaosAddr) => Promise<boolean>;
-  delete: (addr: CaosAddr) => Promise<void>;
+  addr: {
+    all: (addr: CaosAddr) => CaosAddr[];
+    has: (addr: CaosAddr) => boolean;
+  };
+  data: {
+    add: (data: CaosData) => Promise<CaosAddr>;
+    del: (addr: CaosAddr) => Promise<void>;
+    has: (addr: CaosAddr) => Promise<boolean>;
+    get: (addr: CaosAddr) => Promise<CaosData | undefined>;
+  };
+  refs: {
+    all: (addr: CaosAddr) => CaosRefs;
+    add: (addr: CaosAddr, ref: CaosRefType, to: CaosAddr) => void;
+    del: (addr: CaosAddr, ref: CaosRefType, to: CaosAddr) => void;
+    get: (addr: CaosAddr, ref: CaosRefType) => CaosAddr[];
+  };
+  tags: {
+    all: (addr: CaosAddr) => CaosTags;
+    del: (addr: CaosAddr, tag: CaosTagKey) => void;
+    get: (addr: CaosAddr, tag: CaosTagKey) => CaosTagValue | undefined;
+    set: (addr: CaosAddr, tag: CaosTagKey, value: CaosTagValue) => void;
+  };
 }

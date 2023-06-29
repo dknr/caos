@@ -1,7 +1,7 @@
 import { CaosConfig } from "./config.ts";
 import * as path from 'https://deno.land/std@0.192.0/path/mod.ts';
 import {DB} from 'https://deno.land/x/sqlite@v3.7.2/mod.ts';
-import {CaosAddr} from "../types.ts";
+import {CaosAddr, CaosTagKey} from "../types.ts";
 
 const prepareCaosMetaDb = (db: DB) => {
 
@@ -57,14 +57,27 @@ export const openCaosMeta = (config: CaosConfig) => {
       `insert into objs (addr) values (?)`,
       [addr]
     ),
+
+    getAddrs: (partial: CaosAddr) => db.query<[string]>(
+      `select addr from objs where addr like ?`,
+      [partial + '%']
+    ).map(([addr]) => addr),
+
+    hasAddr: (addr: CaosAddr) => db.query(
+      `select addr from objs where addr = ?`,
+      [addr]
+    ).length > 0,
+
     setTag: (addr: CaosAddr, tag: string, value: string) => db.query(
       `insert into tags (addr, tag, value) values (?,?,?)`,
       [addr, tag, value]
     ),
-    getTag: (addr: CaosAddr, tag: string) => db.query(
+
+    getTag: (addr: CaosAddr, tag: string) => db.query<[string]>(
       `select value from tags where addr = ? and tag = ?`,
       [addr, tag]
     )[0][0],
+
     getTags: (addr: CaosAddr) => db.query(
       `select tag, value from tags where addr = ?`,
       [addr]
@@ -72,6 +85,11 @@ export const openCaosMeta = (config: CaosConfig) => {
       {tag: String(row[0]), value: String(row[1])}
     )).reduce(
       (result, {tag, value}) => ({...result, [tag]: value}), {}
+    ),
+
+    delTag: (addr: CaosAddr, tag: CaosTagKey) => db.query(
+      `delete from tags where addr = ? and tag = ?`,
+      [addr, tag],
     ),
   }
 }
