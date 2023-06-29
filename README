@@ -1,0 +1,8 @@
+CAOS
+ Content-Addressed Object Store
+
+Quick Start
+`deno run -A caos.ts`
+
+Why?
+IPFS is too complex and too public, Microsoft's semantic filesystem idea died back in the days of NT, S3 is too expensive, and I have tens of thousands of files to organize.
