@@ -4,6 +4,7 @@ import {Caos} from "../types.ts";
 import addr from "./addr.ts";
 import data from "./data.ts";
 import tags from "./tags.ts";
+import path from "./path.ts";
 
 type ServeOpts = {
   home: string;
@@ -24,6 +25,7 @@ export const serveCaos = (caos: Caos, opts: ServeOpts) => {
   router.use("/addr", addr(caos));
   router.use("/data", data(caos));
   router.use("/tags", tags(caos));
+  router.use("/path", path(caos));
 
   app.use(async (ctx, next) => {
     try {
