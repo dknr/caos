@@ -36,31 +36,49 @@ const path = (caos: Caos) => {
 
     const pathBytes = await readAll(readerFromStreamReader(data.getReader()));
     const pathFile = textDecoder.decode(pathBytes);
-    const names = pathFile.split('\n').map((line) => line.split(' ', 2));
-    names.forEach(console.log);
+    const paths = pathFile.split('\n').map((line) => line.split(' ', 2));
+    // names.forEach(console.log);
 
-    const name = (ctx.params.name || '');
-    const match = names.find(([_, lineName]) => lineName === name);
-    if (!match) {
-      ctx.response.status = 404;
-      ctx.response.headers.set('reason', 'name not found in path');
-      return;
-    }
+    if (ctx.request.url.pathname.endsWith('/')) {
+      if (ctx.params.name) {
+        const name = ctx.params.name!;
+        const entries = paths.filter(([_,path]) => path.startsWith(name));
+        ctx.response.body = Object.fromEntries(entries);
+      } else {
+        // index.html, fall back to autoindex
+        ctx.response.status = 500;
+        ctx.response.headers.set('reason', 'index fallback not implemented')
+      }
+    } else {
+      if (ctx.params.name) {
+        // look up name and redirect
+        const name = (ctx.params.name || '');
+        const match = paths.find(([_, path]) => path === name);
+        if (!match) {
+          ctx.response.status = 404;
+          ctx.response.headers.set('reason', 'name not found in path');
+          return;
+        }
 
-    const addrs = caos.addr.all(match[0]);
-    if (addrs.length > 1) {
-      ctx.response.status = 300;
-      return;
-    }
-    if (addrs.length < 1) {
-      ctx.response.status = 404;
-      ctx.response.headers.set('reason', 'addr does not exist for name');
-      return;
-    }
+        const addrs = caos.addr.all(match[0]);
+        if (addrs.length > 1) {
+          ctx.response.status = 300;
+          return;
+        }
+        if (addrs.length < 1) {
+          ctx.response.status = 404;
+          ctx.response.headers.set('reason', 'addr does not exist for name');
+          return;
+        }
 
-    const addr = addrs[0];
-    ctx.response.status = 301;
-    ctx.response.headers.set('location', `/data/${addr}`);
+        const addr = addrs[0];
+        ctx.response.status = 301;
+        ctx.response.headers.set('location', `/data/${addr}`);
+      } else {
+        // JSON directory listing
+        ctx.response.body = Object.fromEntries(paths);
+      }
+    }
   })
 
   return router.routes();
