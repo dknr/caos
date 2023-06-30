@@ -16,6 +16,6 @@ const addr = (caos: Caos) => {
   });
 
   return router.routes();
-}
+};
 
 export default addr;

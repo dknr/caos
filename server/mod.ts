@@ -30,7 +30,7 @@ export const serveCaos = (caos: Caos, opts: ServeOpts) => {
   app.use(async (ctx, next) => {
     try {
       await next();
-      log([ctx.response.status, ctx.request.method, ctx.request.url.pathname].join(' '));
+      log([ctx.response.status, ctx.request.method.padStart(4), ctx.request.url.pathname].join(' '));
     } catch(e) {
       log(`ERR ${ctx.request.method.padStart(4)} ${ctx.request.url.pathname}`);
       throw e;
