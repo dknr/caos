@@ -1,12 +1,14 @@
 import { CmdFn } from "./cmd.ts";
 import add from "./cmds/add.ts";
 import help from "./cmds/help.ts";
+import push from "./cmds/push.ts";
 import serve from "./cmds/serve.ts";
 import tag from "./cmds/tag.ts";
 
 const cmd = Deno.args[0];
 const cmds: Record<string, CmdFn> = {
   add,
+  push,
   serve,
   tag,
   help: help(() => cmds),

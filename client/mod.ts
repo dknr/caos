@@ -1,4 +1,4 @@
-import { CaosAddr, CaosTagKey, CaosTags, CaosTagValue } from "../types.ts";
+import { CaosAddr, CaosData, CaosTagKey, CaosTags, CaosTagValue } from "../types.ts";
 
 export type ClientConfig = {
   host: string;
@@ -8,6 +8,9 @@ export type CaosClient = {
   addr: {
     all: (addr: CaosAddr) => Promise<CaosAddr[]>;
   };
+  data: {
+    add: (data: BodyInit) => Promise<CaosAddr>;
+  }
   tags: {
     all: (addr: CaosAddr) => Promise<CaosTags>;
     get: (addr: CaosAddr, tag: CaosTagKey) => Promise<CaosTagValue | undefined>;
@@ -26,6 +29,16 @@ export const buildClient = ({ host }: ClientConfig): CaosClient => ({
       const res = await fetch(`${host}/addr/${addr}`);
       return await res.json();
     },
+  },
+  data: {
+    add: async (data) => {
+      const result = await fetch(`${host}/data`, {
+        method: 'post',
+        body: data,
+      });
+      const addr = await result.text();
+      return addr;
+    }
   },
   tags: {
     all: async (addr) => {

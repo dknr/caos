@@ -37,8 +37,9 @@ const path = (caos: Caos) => {
     const pathBytes = await readAll(readerFromStreamReader(data.getReader()));
     const pathFile = textDecoder.decode(pathBytes);
     const names = pathFile.split('\n').map((line) => line.split(' ', 2));
+    names.forEach(console.log);
 
-    const name = '/' + (ctx.params.name || '');
+    const name = (ctx.params.name || '');
     const match = names.find(([_, lineName]) => lineName === name);
     if (!match) {
       ctx.response.status = 404;
