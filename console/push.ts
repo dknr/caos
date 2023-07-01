@@ -17,7 +17,7 @@ const push: CmdFn = async (args) => {
       if (entry.isFile) {
         const file = await Deno.open(entry.path);
         const addr = await client.data.add(file.readable);
-        const name = `${addr.slice(0,8)} ${entry.path}`;
+        const name = `${addr} ${entry.path}`;
         names.push(name);
         console.log(name);
       }
@@ -28,7 +28,7 @@ const push: CmdFn = async (args) => {
   const pathAddr = await client.data.add(pathBytes);
   await client.tags.set(pathAddr, 'type', 'caos/path');
 
-  console.log(`${hosts.localhost}/path/${pathAddr.slice(0,12)}`);
+  console.log(`\n${pathAddr} caos/path`);
 };
 
 export default push;
