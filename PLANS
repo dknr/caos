@@ -1,0 +1,8 @@
+v2 plans:
+- rename `data` API to `caos`
+- implement `ls` command
+- implement `get` and `pull` commands
+- implement `find` API and CLI
+- implement `name` API
+- implement `stat` API and CLI
+
