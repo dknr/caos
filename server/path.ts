@@ -5,6 +5,22 @@ import {Caos} from "../types.ts";
 
 const textDecoder = new TextDecoder();
 
+const indexRow = (addr: string, path: string[]) =>
+`<pre><a class="path-addr" href="/data/${path[0]}">${path[0].slice(0,8)}</a> <a class="path-name" href="/path/${addr}/${path[1]}">${path[1]}</a></pre>`;
+
+const autoindex = (addr: string, paths: string[][]): string => `<!DOCTYPE html>
+<html>
+<head>
+<title>caos - autoindex</title>
+<style>
+</style>
+</head>
+<body>
+${(paths.map((path) => indexRow(addr, path))).join('\n')}
+</body>
+</html>
+`
+
 const path = (caos: Caos) => {
   const router = new Router();
 
@@ -40,18 +56,34 @@ const path = (caos: Caos) => {
     // names.forEach(console.log);
 
     if (ctx.request.url.pathname.endsWith('/')) {
-      if (ctx.params.name) {
-        const name = ctx.params.name!;
+      const name = ctx.params.name;
+      if (name) {
         const entries = paths.filter(([_,path]) => path.startsWith(name));
         ctx.response.body = Object.fromEntries(entries);
+        return;
       } else {
         // index.html, fall back to autoindex
-        ctx.response.status = 500;
-        ctx.response.headers.set('reason', 'index fallback not implemented')
+        const entry = paths.find(([_,path]) => path === `${name}/index.html`);
+        if (entry) {
+          const addr = entry[0];
+          const data = await caos.data.get(addr);
+          const type = caos.tags.get(addr, 'type');
+          if (data && type === 'index/html') {
+            ctx.response.body = data;
+            return;
+          } else {
+            ctx.response.status = 404;
+            return;
+          }
+        } else {
+          ctx.response.body = autoindex(pathAddr, paths);
+          ctx.response.type = 'text/html';
+          return
+        }
       }
     } else {
       if (ctx.params.name) {
-        // look up name and redirect
+        // path/[addr]/[path]/[name] look up name and redirect
         const name = (ctx.params.name || '');
         const match = paths.find(([_, path]) => path === name);
         if (!match) {
@@ -72,10 +104,10 @@ const path = (caos: Caos) => {
         }
 
         const addr = addrs[0];
-        ctx.response.status = 301;
-        ctx.response.headers.set('location', `/data/${addr}`);
+        ctx.response.body = await caos.data.get(addr);
+        ctx.response.type = caos.tags.get(addr, 'type');
       } else {
-        // JSON directory listing
+        // path/[addr] JSON directory listing
         ctx.response.body = Object.fromEntries(paths);
       }
     }
