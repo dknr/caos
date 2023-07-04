@@ -103,8 +103,8 @@ const path = (caos: Caos) => {
         ctx.response.body = await caos.data.get(addr);
         ctx.response.type = caos.tags.get(addr, 'type');
       } else {
-        // path/[addr] JSON directory listing
-        ctx.response.body = Object.fromEntries(paths);
+        ctx.response.status = 301;
+        ctx.response.headers.set('location', ctx.request.url.pathname + '/');
       }
     }
   })
