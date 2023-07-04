@@ -2,24 +2,20 @@ import { readAll } from "https://deno.land/std@0.192.0/streams/read_all.ts";
 import { readerFromStreamReader } from "https://deno.land/std@0.192.0/streams/reader_from_stream_reader.ts";
 import {Router} from "https://deno.land/x/oak@v12.1.0/router.ts";
 import {Caos} from "../types.ts";
+import {a, div, page} from '../html.ts';
 
 const textDecoder = new TextDecoder();
 
-const indexRow = (addr: string, path: string[]) =>
-`<pre><a class="path-addr" href="/data/${path[0]}">${path[0].slice(0,8)}</a> <a class="path-name" href="/path/${addr}/${path[1]}">${path[1]}</a></pre>`;
+const row = (addr: string, path: string[]) =>
+  div({class: 'path'},
+    a({class: 'path-addr', href: `/data/${path[0]}`}, path[0].slice(0,8)),
+    a({class: 'path-name', href: `/path/${addr}/${path[1]}`}, path[1]),
+  );
 
-const autoindex = (addr: string, paths: string[][]): string => `<!DOCTYPE html>
-<html>
-<head>
-<title>caos - autoindex</title>
-<style>
-</style>
-</head>
-<body>
-${(paths.map((path) => indexRow(addr, path))).join('\n')}
-</body>
-</html>
-`
+const autoindex = (addr: string, paths: string[][]) => page(
+  addr.slice(0,8),
+  ...paths.map((path) => row(addr, path))
+);
 
 const path = (caos: Caos) => {
   const router = new Router();
