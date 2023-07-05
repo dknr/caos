@@ -17,7 +17,24 @@ const data = (caos: Caos) => {
   });
 
   router.get("/:addr", async (ctx) => {
-    const addr = ctx.params.addr;
+    const param = ctx.params.addr;
+    if (param.length < 6) {
+      ctx.response.status = 404;
+      return;
+    }
+
+    const addrs = caos.addr.all(param);
+    if (addrs.length < 1) {
+      ctx.response.status = 404;
+      return;
+    }
+    if (addrs.length > 1) {
+      ctx.response.status = 300;
+      ctx.response.body = addrs;
+      return;
+    }
+
+    const addr = addrs[0];
     const data = await caos.data.get(addr);
     if (data) {
       const type = caos.tags.get(addr, "type");

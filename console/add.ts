@@ -1,10 +1,9 @@
 import { CmdFn } from "../cmd.ts";
+import opts from "../opts.ts";
 
-const config = {
-  host: 'http://localhost:31923'
-}
 
 const add: CmdFn = async (args) => {
+  const host = opts.load().host;
   const path = args.pop();
   if (!path) {
     console.log('no path specified');
@@ -12,10 +11,8 @@ const add: CmdFn = async (args) => {
     Deno.exit(-1);
   }
   
-  const opts = args.reduce((acc) => acc, []);
   const file = await Deno.open(path);
-
-  const postDataResult = await fetch(`${config.host}/data`, {
+  const postDataResult = await fetch(`${host}/data`, {
     method: 'post',
     body: file.readable,
   });

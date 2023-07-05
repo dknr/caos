@@ -2,6 +2,7 @@ import { CaosConfig } from "./config.ts";
 import * as path from 'https://deno.land/std@0.192.0/path/mod.ts';
 import {DB} from 'https://deno.land/x/sqlite@v3.7.2/mod.ts';
 import {CaosAddr, CaosTagKey} from "../types.ts";
+import { CaosOpts } from "../opts.ts";
 
 const prepareCaosMetaDb = (db: DB) => {
 
@@ -45,8 +46,8 @@ create table if not exists refs (
 `);
 };
 
-export const openCaosMeta = (config: CaosConfig) => {
-  const metaPath = path.join(config.path, 'meta');
+export const openCaosMeta = (opts: CaosOpts) => {
+  const metaPath = path.join(opts.root, 'meta');
   Deno.mkdirSync(metaPath, {recursive: true});
 
   const db = new DB(path.join(metaPath, 'caos.db'));
