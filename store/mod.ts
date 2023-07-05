@@ -1,18 +1,18 @@
 import { Caos } from "../types.ts";
-import { CaosConfig } from "./config.ts";
 import {openCaosData} from "./data.ts";
 import {openCaosMeta} from "./meta.ts";
 import log from "../log.ts";
+import { CaosOpts } from "../opts.ts";
 
 const notImplemented = () => {
   throw new Error('not implemented');
 }
 
-export const openCaos = (config: CaosConfig): Caos => {
-  log(`opening caos: ${config.path}`);
-  Deno.mkdirSync(config.path, {recursive: true});
-  const data = openCaosData(config);
-  const meta = openCaosMeta(config);
+export const openCaos = (opts: CaosOpts): Caos => {
+  log(`opening caos: ${opts.root}`);
+  Deno.mkdirSync(opts.root, {recursive: true});
+  const data = openCaosData(opts);
+  const meta = openCaosMeta(opts);
   return {
     addr: {
       all: meta.getAddrs,

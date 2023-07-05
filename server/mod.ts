@@ -5,12 +5,10 @@ import addr from "./addr.ts";
 import data from "./data.ts";
 import tags from "./tags.ts";
 import path from "./path.ts";
+import { CaosOpts } from "../opts.ts";
 
-type ServeOpts = {
-  home: string;
-}
 
-export const serveCaos = (caos: Caos, opts: ServeOpts) => {
+export const serveCaos = (caos: Caos, opts: CaosOpts) => {
   const app = new Application();
   const router = new Router();
 

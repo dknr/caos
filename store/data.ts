@@ -2,11 +2,12 @@ import {Caos, CaosAddr, CaosData} from "../types.ts";
 import { CaosConfig } from "./config.ts";
 import * as path from 'https://deno.land/std@0.192.0/path/mod.ts';
 import { StreamHasher, StreamTyper, StreamSizer } from '../stream/mod.ts';
+import { CaosOpts } from "../opts.ts";
 
-export const openCaosData = (config: CaosConfig) => {
-  const dataPath = path.join(config.path, 'data');
+export const openCaosData = (config: CaosOpts) => {
+  const dataPath = path.join(config.root, 'data');
   const nameFile = (addr: CaosAddr) => path.join(dataPath, addr);
-  const tempPath = path.join(config.path, 'temp');
+  const tempPath = path.join(config.root, 'temp');
 
   Deno.mkdirSync(dataPath, {recursive: true});
   Deno.mkdirSync(tempPath, {recursive: true});
