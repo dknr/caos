@@ -7,23 +7,22 @@ import tags from "./tags.ts";
 import path from "./path.ts";
 import { CaosOpts } from "../opts.ts";
 
-
 export const serveCaos = (caos: Caos, opts: CaosOpts) => {
   const app = new Application();
   const router = new Router();
 
   router.get("/", (ctx) => {
-    ctx.response.status = 303;
+    ctx.response.status = 302;
     ctx.response.headers.set(
       "location",
-      `/data/${opts.home}`,
+      opts.home,
     );
   });
 
   router.use("/addr", addr(caos));
   router.use("/data", data(caos));
-  router.use("/tags", tags(caos));
   router.use("/path", path(caos));
+  router.use("/tags", tags(caos));
 
   app.use(async (ctx, next) => {
     try {
@@ -39,7 +38,12 @@ export const serveCaos = (caos: Caos, opts: CaosOpts) => {
 
   app.addEventListener(
     "listen",
-    (e) => log(`serving caos: http://localhost:${e.port}`),
+    (e) => {
+      const {home, host} = opts;
+      log(`serving caos: http://localhost:${e.port}`);
+      log(`host: ${host}`);
+      log(`home: ${host}/${home}`);
+    }
   );
   app.listen({ port: 31923 });
 };

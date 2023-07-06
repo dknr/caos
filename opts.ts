@@ -49,7 +49,7 @@ export const opts: OptsApi = {
   },
   default: {
     root: '/tmp/caos',
-    home: 'd10b49b4',
+    home: 'data/d10b49b4',
     host: 'http://localhost:31923',
   }
 }
