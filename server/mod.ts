@@ -8,6 +8,13 @@ import path from "./path.ts";
 import { CaosOpts } from "../opts.ts";
 
 export const serveCaos = (caos: Caos, opts: CaosOpts) => {
+  if (opts.host !== 'http://localhost:31923') {
+    console.log('refusing to serve unknown host');
+    console.log(opts.host);
+    console.log('try: caos opts set host http://localhost:31923');
+    Deno.exit(-1);
+  }
+
   const app = new Application();
   const router = new Router();
 

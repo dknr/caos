@@ -44,7 +44,7 @@ export const opts: OptsApi = {
     }
   },
   save: (value) => {
-    const json = JSON.stringify(value);
+    const json = JSON.stringify(value, undefined, 2);
     Deno.writeTextFileSync(configPath, json);
   },
   default: {
