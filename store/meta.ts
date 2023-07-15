@@ -77,7 +77,7 @@ export const openCaosMeta = (opts: CaosOpts) => {
     getTag: (addr: CaosAddr, tag: string) => db.query<[string]>(
       `select value from tags where addr = ? and tag = ?`,
       [addr, tag]
-    )[0][0],
+    ).map((row) => row[0])[0],
 
     getTags: (addr: CaosAddr) => db.query(
       `select tag, value from tags where addr = ?`,
