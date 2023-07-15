@@ -27,7 +27,7 @@ export const openCaosData = (config: CaosOpts) => {
         .pipeTo(tempFile.writable);
       
       const addr = hasher.digest();
-      const type = typer.type;
+      const type = typer.getType();
       const size = sizer.size;
 
       await Deno.copyFile(tempName, nameFile(addr))
