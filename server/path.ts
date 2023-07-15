@@ -48,8 +48,13 @@ const path = (caos: Caos) => {
 
     const pathBytes = await readAll(readerFromStreamReader(data.getReader()));
     const pathFile = textDecoder.decode(pathBytes);
-    const paths = pathFile.split('\n').map((line) => line.split(' ', 2));
-    // names.forEach(console.log);
+    const pathLines = pathFile.split('\n');
+    const paths: [string, string][] = [];
+    for (const line of pathLines) {
+      const path = line.match(/^(\w*) (.*)/)?.slice(1,3);
+      if (path) 
+        paths.push(path as [string, string]);
+    }
 
     if (ctx.request.url.pathname.endsWith('/')) {
       const name = ctx.params.name;
