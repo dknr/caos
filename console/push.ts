@@ -19,8 +19,8 @@ const push: CmdFn = async (args, opts) => {
 
   const entries = args
     .flatMap((arg) => Array.from(walkSync(arg)))
-    .filter((entry) => entry.isFile);
-  entries.sort(compareEntries)
+    .filter((entry) => entry.isFile)
+    .sort(compareEntries);
 
   for (const entry of entries) {
     const file = await Deno.open(entry.path);

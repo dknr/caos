@@ -68,11 +68,20 @@ export const page = (name: string, ...inner: string[]) => html(
     style({
       body: {
         backgroundColor: 'black',
-        color: 'white',
+        color: '#cbbbab',
       },
       '.path': {
         fontSize: '16px',
         fontFamily: 'monospace',
+      },
+      'a': {
+        color: '#4040b3'
+      },
+      'a:hover': {
+        color: '#b34040'
+      },
+      'a:visited': {
+        color: '#b36303'
       }
     })
   ),

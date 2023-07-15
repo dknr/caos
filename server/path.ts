@@ -2,23 +2,54 @@ import { readAll } from "https://deno.land/std@0.192.0/streams/read_all.ts";
 import { readerFromStreamReader } from "https://deno.land/std@0.192.0/streams/reader_from_stream_reader.ts";
 import {Router} from "https://deno.land/x/oak@v12.1.0/router.ts";
 import {Caos} from "../types.ts";
-import {a, div, page} from '../html.ts';
+import {a, div, page, pre, span} from '../html.ts';
 
 const textDecoder = new TextDecoder();
 
-const row = (addr: string, path: string[]) =>
-  div({class: 'path'},
-    a({class: 'path-addr', href: `/data/${path[0]}`}, path[0].slice(0,8)),
-    a({class: 'path-name', href: `/path/${addr}/${path[1]}`}, path[1]),
-  );
+const shortType = (type: string | undefined) => {
+  return type?.split('/').map((a) => a[0]).join('/') || '???';
+}
 
-const autoindex = (addr: string, paths: string[][]) => page(
-  addr.slice(0,8),
-  ...paths.map((path) => row(addr, path))
-);
+const prefix = ['', 'k', 'M', 'G', 'T', 'P', 'E'];
+const shortSize = (size: number, length = 4): string => {
+  const numerals = Math.ceil(Math.log10(size));
+  if (numerals <= length) 
+    return size.toString().padStart(length);
+
+  let value = size;
+  let result = '';
+  let scale = 0;
+  while (value > 0) {
+    const part = value % 1000;
+    result = part + prefix[scale] + result;
+    value = Math.floor(value / 1000);
+    scale++;
+  }
+
+  return result.slice(0,length);
+}
+
 
 const path = (caos: Caos) => {
   const router = new Router();
+
+  const row = (addr: string, path: string[]) => {
+    const type = shortType(caos.tags.get(path[0], 'type'));
+    const size = shortSize(parseInt(caos.tags.get(path[0], 'size') || ''));
+
+    return div({class: 'path'},
+      pre([
+        a({class: 'path-addr', href: `/data/${path[0]}`}, path[0].slice(0,8)),
+        type, size, 
+        a({class: 'path-name', href: `/path/${addr}/${path[1]}`}, path[1]),
+      ].join(' ')),
+    );
+  }
+
+  const autoindex = (addr: string, paths: string[][]) => page(
+    addr.slice(0,8),
+    ...paths.map((path) => row(addr, path))
+  );
 
   router.get('/:addr/:name*', async (ctx) => {
     const pathAddrs = caos.addr.all(ctx.params.addr);
