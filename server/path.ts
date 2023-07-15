@@ -1,7 +1,7 @@
 import { readAll } from "https://deno.land/std@0.192.0/streams/read_all.ts";
 import { readerFromStreamReader } from "https://deno.land/std@0.192.0/streams/reader_from_stream_reader.ts";
 import {Router} from "https://deno.land/x/oak@v12.1.0/router.ts";
-import {Caos} from "../types.ts";
+import {Caos, CaosAddr} from "../types.ts";
 import {a, div, page, pre, span} from '../html.ts';
 
 const textDecoder = new TextDecoder();
@@ -29,6 +29,16 @@ const shortSize = (size: number, length = 4): string => {
   return result.slice(0,length);
 }
 
+type Result<TValue, TElse = string> = {
+  ok: true;
+  value: TValue
+} | {
+  ok: false;
+  else: TElse;
+};
+
+type Path = [CaosAddr, string];
+type Paths = Path[];
 
 const path = (caos: Caos) => {
   const router = new Router();
@@ -51,30 +61,23 @@ const path = (caos: Caos) => {
     ...paths.map((path) => row(addr, path))
   );
 
-  router.get('/:addr/:name*', async (ctx) => {
-    const pathAddrs = caos.addr.all(ctx.params.addr);
+  const openPathFile = async (addr: string): Promise<Result<Paths,{ reason?: string; status: number; }>> => {
+    const pathAddrs = caos.addr.all(addr);
     if (pathAddrs.length < 1) {
-      ctx.response.status = 404;
-      ctx.response.headers.set('reason', 'unknown address');
-      return;
+      return {ok: false, else: {status: 404, reason: 'unknown addr'}};
     } else if (pathAddrs.length > 1) {
-      ctx.response.status = 300;
-      return;
+      return {ok: false, else: {status: 300}};
     }
 
     const pathAddr = pathAddrs[0];
     const pathType = caos.tags.get(pathAddr, 'type');
     if (pathType !== 'caos/path') {
-      ctx.response.status = 404;
-      ctx.response.headers.set('reason', `invalid type ${pathType}`);
-      return;
+      return {ok: false, else: {status: 404, reason: `invalid type ${pathType}`}};
     }
 
     const data = await caos.data.get(pathAddr);
     if (!data) {
-      ctx.response.status = 404;
-      ctx.response.headers.set('reason', 'no data for address');
-      return;
+      return {ok: false, else: {status: 404, reason: 'no data for address'}};
     }
 
     const pathBytes = await readAll(readerFromStreamReader(data.getReader()));
@@ -87,61 +90,87 @@ const path = (caos: Caos) => {
         paths.push(path as [string, string]);
     }
 
-    if (ctx.request.url.pathname.endsWith('/')) {
-      const name = ctx.params.name;
-      if (name) {
-        const entries = paths.filter(([_,path]) => path.startsWith(name));
-        ctx.response.body = Object.fromEntries(entries);
-        return;
+    return {ok: true, value: paths};
+  }
+
+  router.get('/:addr', async (ctx) => {
+    if (!ctx.request.url.pathname.endsWith('/')) {
+      ctx.response.status = 301;
+      ctx.response.headers.set('location', ctx.request.url.pathname + '/');
+    }
+
+    const pathFile = await openPathFile(ctx.params.addr);
+    if (!pathFile.ok) {
+      ctx.response.status = pathFile.else.status;
+      if (pathFile.else.reason)
+        ctx.response.headers.set('reason', pathFile.else.reason);
+      return;
+    }
+    const paths = pathFile.value;
+    const indexPath = paths.find((path) => path[1] === 'index.html');
+    if (indexPath) {
+      const indexData = await caos.data.get(indexPath[0]);
+      const indexType = caos.tags.get(indexPath[0], 'type');
+      if (indexData && indexType === 'text/html') {
+        ctx.response.body = indexData;
+        ctx.response.type = indexType;
       } else {
-        // index.html, fall back to autoindex
-        const entry = paths.find(([_,path]) => path === `${name}/index.html`);
-        if (entry) {
-          const addr = entry[0];
-          const data = await caos.data.get(addr);
-          const type = caos.tags.get(addr, 'type');
-          if (data && type === 'index/html') {
-            ctx.response.body = data;
-            return;
-          } else {
-            ctx.response.status = 404;
-            return;
-          }
-        } else {
-          ctx.response.body = autoindex(pathAddr, paths);
-          ctx.response.type = 'text/html';
-          return
-        }
+        ctx.response.status = 404;
       }
     } else {
-      if (ctx.params.name) {
-        // path/[addr]/[path]/[name] look up name and redirect
-        const name = (ctx.params.name || '');
-        const match = paths.find(([_, path]) => path === name);
-        if (!match) {
-          ctx.response.status = 404;
-          ctx.response.headers.set('reason', 'name not found in path');
-          return;
-        }
+      ctx.response.body = autoindex(ctx.params.addr, paths);
+      ctx.response.type = 'text/html';
+    }
+  });
 
-        const addrs = caos.addr.all(match[0]);
-        if (addrs.length > 1) {
-          ctx.response.status = 300;
-          return;
-        }
-        if (addrs.length < 1) {
-          ctx.response.status = 404;
-          ctx.response.headers.set('reason', 'addr does not exist for name');
-          return;
-        }
+  router.get('/:addr/:name*', async (ctx) => {
+    const pathFile = await openPathFile(ctx.params.addr);
+    if (!pathFile.ok) {
+      ctx.response.status = pathFile.else.status;
+      if (pathFile.else.reason)
+        ctx.response.headers.set('reason', pathFile.else.reason);
+      return;
+    }
+    const paths = pathFile.value;
 
-        const addr = addrs[0];
-        ctx.response.body = await caos.data.get(addr);
-        ctx.response.type = caos.tags.get(addr, 'type');
+    if (ctx.request.url.pathname.endsWith('/')) {
+      const indexName = `${ctx.params.name}/index.html`;
+      const indexPath = paths.find((path) => path[1] === indexName);
+      console.log({indexName, indexPath});
+      if (indexPath) {
+        const indexData = await caos.data.get(indexPath[0]);
+        const indexType = caos.tags.get(indexPath[0], 'type');
+        if (indexData && indexType === 'text/html') {
+          ctx.response.body = indexData;
+          ctx.response.type = indexType;
+        } else {
+          ctx.response.status = 404;
+        }
       } else {
-        ctx.response.status = 301;
-        ctx.response.headers.set('location', ctx.request.url.pathname + '/');
+        ctx.response.status = 404;
       }
+    } else {
+      const match = paths.find(([_, path]) => path === ctx.params.name);
+      if (!match) {
+        ctx.response.status = 404;
+        ctx.response.headers.set('reason', 'name not found in path');
+        return;
+      }
+
+      const addrs = caos.addr.all(match[0]);
+      if (addrs.length > 1) {
+        ctx.response.status = 300;
+        return;
+      }
+      if (addrs.length < 1) {
+        ctx.response.status = 404;
+        ctx.response.headers.set('reason', 'addr does not exist for name');
+        return;
+      }
+
+      const addr = addrs[0];
+      ctx.response.body = await caos.data.get(addr);
+      ctx.response.type = caos.tags.get(addr, 'type');
     }
   })
 
