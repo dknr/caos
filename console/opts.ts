@@ -1,7 +1,6 @@
-import { CmdFn } from "../cmd.ts";
 import _opts from '../opts.ts';
 
-const opts: CmdFn = (args) => {
+const opts = (args: string[]) => {
   if (args.length < 1) {
     console.log('usage: caos opts init');
     console.log('       caos opts get');
