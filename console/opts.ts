@@ -4,6 +4,7 @@ const opts = (args: string[]) => {
   if (args.length < 1) {
     console.log('usage: caos opts init');
     console.log('       caos opts get');
+    console.log('       caos opts get [key]');
     console.log('       caos opts set [key] [value]');
     Deno.exit(-1);
   }
@@ -17,7 +18,13 @@ const opts = (args: string[]) => {
     }
     case 'get':{
       const values = _opts.load();
-      console.log(JSON.stringify(values, undefined, 2));
+      if (args.length > 1) {
+	for (const key of args.slice(1)) {
+	  console.log(values[key]);
+	}
+      } else {
+        console.log(JSON.stringify(values, undefined, 2));
+      }
       return;
     }
     case 'set':{
