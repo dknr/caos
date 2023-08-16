@@ -3,16 +3,21 @@ import log from "../log.ts";
 import {Caos} from "../types.ts";
 import addr from "./addr.ts";
 import data from "./data.ts";
+import find from "./find.ts";
 import tags from "./tags.ts";
 import path from "./path.ts";
 import { CaosOpts } from "../opts.ts";
 
 export const serveCaos = (caos: Caos, opts: CaosOpts) => {
-  if (opts.host !== 'http://localhost:31923') {
-    console.log('refusing to serve unknown host');
-    console.log(opts.host);
-    console.log('try: caos opts set host http://localhost:31923');
-    Deno.exit(-1);
+  const hostUrl = new URL(opts.host);
+  if (hostUrl.hostname !== 'localhost') {
+    console.log(`invalid host for serve command: ${hostUrl.hostname}`);
+    Deno.exit(1);
+  }
+  const hostPort = parseInt(hostUrl.port);
+  if (hostPort < 1024) {
+    console.log(`invalid port for serve command: ${hostPort}`)
+    Deno.exit(1);
   }
 
   const app = new Application();
@@ -28,6 +33,7 @@ export const serveCaos = (caos: Caos, opts: CaosOpts) => {
 
   router.use("/addr", addr(caos));
   router.use("/data", data(caos));
+  router.use("/find", find(caos));
   router.use("/path", path(caos));
   router.use("/tags", tags(caos));
 
@@ -52,5 +58,5 @@ export const serveCaos = (caos: Caos, opts: CaosOpts) => {
       log(`home: ${host}/${home}`);
     }
   );
-  app.listen({ port: 31923 });
+  app.listen({ port: hostPort });
 };
