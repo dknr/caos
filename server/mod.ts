@@ -3,7 +3,6 @@ import log from "../log.ts";
 import {Caos} from "../types.ts";
 import addr from "./addr.ts";
 import data from "./data.ts";
-import find from "./find.ts";
 import tags from "./tags.ts";
 import path from "./path.ts";
 import { CaosOpts } from "../opts.ts";
@@ -33,7 +32,6 @@ export const serveCaos = (caos: Caos, opts: CaosOpts) => {
 
   router.use("/addr", addr(caos));
   router.use("/data", data(caos));
-  router.use("/find", find(caos));
   router.use("/path", path(caos));
   router.use("/tags", tags(caos));
 
