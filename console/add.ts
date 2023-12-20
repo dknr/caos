@@ -1,9 +1,8 @@
+import { buildClient } from "../client/mod.ts";
 import { CmdFn } from "../cmd.ts";
-import opts from "../opts.ts";
 
-
-const add: CmdFn = async (args) => {
-  const host = opts.load().host;
+const add: CmdFn = async (args, opts) => {
+  const client = buildClient(opts);
   const path = args.pop();
   if (!path) {
     console.log('no path specified');
@@ -12,18 +11,8 @@ const add: CmdFn = async (args) => {
   }
   
   const file = await Deno.open(path);
-  const postDataResult = await fetch(`${host}/data`, {
-    method: 'post',
-    body: file.readable,
-  });
+  const addr = await client.data.add(file.readable);
 
-  if (!postDataResult.ok) {
-    console.log('failed to upload file');
-    console.log(`status: ${postDataResult.status} ${postDataResult.statusText}`);
-    Deno.exit(postDataResult.status);
-  }
-
-  const addr = await postDataResult.text();
   console.log(addr);
 };
 
