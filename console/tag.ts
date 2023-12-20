@@ -1,5 +1,6 @@
 import { CaosClient,buildClient } from "../client/mod.ts";
 import { CmdFn } from "../cmd.ts";
+import { loadOpts } from "../opts.ts";
 import {assertArgsCount, resolveAddress} from "../util.ts";
 
 const get = async (client: CaosClient, args: string[]) => {
@@ -51,7 +52,8 @@ const ops: Record<string, (client: CaosClient, args: string[]) => void | Promise
 };
 
 const tag: CmdFn = async (args) => {
-  const client = buildClient({host: 'http://localhost:31923'});
+  const {host} = loadOpts();
+  const client = buildClient({host});
   await (ops[args[0]] || ops.help)(client, args.slice(1));
 }
 
