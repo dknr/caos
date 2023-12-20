@@ -5,6 +5,7 @@ import config from "./config.ts";
 import help from "./help.ts";
 import init from "./init.ts";
 import opts from "./opts.ts";
+import pull from "./pull.ts";
 import push from "./push.ts";
 import serve from "./serve.ts";
 import tag from "./tag.ts";
@@ -16,6 +17,7 @@ export const cmds: Record<string, CmdFn> = {
   init,
   opts,
   push,
+  pull,
   serve,
   tag,
   help: help(() => cmds),
