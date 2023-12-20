@@ -16,7 +16,7 @@ export const serveCaos = (caos: Caos, opts: CaosOpts) => {
     ctx.response.status = 303;
     ctx.response.headers.set(
       "location",
-      `/data/${opts.home}`,
+      `${opts.home}`,
     );
   });
 
