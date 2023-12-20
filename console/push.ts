@@ -1,7 +1,7 @@
 import { WalkEntry, walkSync } from "https://deno.land/std@0.192.0/fs/mod.ts";
 import { buildClient } from "../client/mod.ts";
 import { CmdFn } from "../cmd.ts";
-import hosts from '../hosts.ts';
+import {loadOpts} from "../opts.ts";
 
 const textEncoder = new TextEncoder();
 
@@ -14,7 +14,7 @@ const compareEntries = (a: WalkEntry, b: WalkEntry): number => {
 }
 
 const push: CmdFn = async (args) => {
-  const host = hosts.localhost;
+  const {host} = loadOpts();
   const client = buildClient({host});
   const paths: string[] = [];
 
