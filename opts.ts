@@ -11,6 +11,7 @@ export type CaosOpts = {
   host: string;
   root: string;
   home: string;
+  token?: string;
 }
 
 type OptsApi = {

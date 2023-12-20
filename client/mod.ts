@@ -2,6 +2,7 @@ import { CaosAddr, CaosData, CaosTagKey, CaosTags, CaosTagValue } from "../types
 
 export type ClientConfig = {
   host: string;
+  token?: string;
 };
 
 export type CaosClient = {
@@ -9,7 +10,7 @@ export type CaosClient = {
     all: (addr: CaosAddr) => Promise<CaosAddr[]>;
   };
   data: {
-    add: (data: BodyInit) => Promise<CaosAddr>;
+    add: (data: CaosData) => Promise<CaosAddr>;
     get: (addr: CaosAddr) => Promise<CaosData | undefined>;
   }
   tags: {
@@ -24,7 +25,7 @@ export type CaosClient = {
   };
 };
 
-export const buildClient = ({ host }: ClientConfig): CaosClient => ({
+export const buildClient = ({ host, token }: ClientConfig): CaosClient => ({
   addr: {
     all: async (addr) => {
       const res = await fetch(`${host}/addr/${addr}`);
@@ -36,6 +37,9 @@ export const buildClient = ({ host }: ClientConfig): CaosClient => ({
       const result = await fetch(`${host}/data`, {
         method: 'post',
         body: data,
+        headers: {
+          ...(token ? {'Authorization': `Bearer ${token}`} : {})
+        }
       });
       const addr = await result.text();
       return addr;
@@ -65,13 +69,21 @@ export const buildClient = ({ host }: ClientConfig): CaosClient => ({
       const res = await fetch(`${host}/tags/${addr}/${tag}`, {
         method: "put",
         body: value,
+        headers: {
+          ...(token ? {'Authorization': `Bearer ${token}`} : {})
+        }
       });
       if (!res.ok) {
         throw new Error(`failed request: ${res.status} ${res.statusText}`);
       }
     },
     del: async (addr, tag) => {
-      await fetch(`${host}/tags/${addr}/${tag}`, { method: "delete" });
+      await fetch(`${host}/tags/${addr}/${tag}`, { 
+        method: "delete",
+        headers: {
+          ...(token ? {'Authorization': `Bearer ${token}`} : {})
+        }
+      });
     },
   },
 });
