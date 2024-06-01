@@ -52,7 +52,7 @@ const ops: Record<string, (client: CaosClient, args: string[]) => void | Promise
 };
 
 const tag: CmdFn = async (args, opts) => {
-  const client = buildClient({host: opts.host});
+  const client = buildClient(opts);
   await (ops[args[0]] || ops.help)(client, args.slice(1));
 }
 

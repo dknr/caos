@@ -13,8 +13,7 @@ const compareEntries = (a: WalkEntry, b: WalkEntry): number => {
 }
 
 const push: CmdFn = async (args, opts) => {
-  const {host} = opts;
-  const client = buildClient({host});
+  const client = buildClient(opts);
   const paths: string[] = [];
 
   const entries = args
@@ -34,7 +33,7 @@ const push: CmdFn = async (args, opts) => {
   const pathAddr = await client.data.add(pathBytes);
   await client.tags.set(pathAddr, 'type', 'caos/path');
 
-  console.log(`${host}/path/${pathAddr.slice(0,8)}`);
+  console.log(`${opts.host}/path/${pathAddr.slice(0,8)}`);
 };
 
 export default push;
