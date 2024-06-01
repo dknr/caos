@@ -58,14 +58,15 @@ const pull: CmdFn = async (args) => {
     const text = u8d.decode(pathBytes);
     const lines = text.split('\n');
     for (let line = 0; line < lines.length; line++) {
-      const parts = lines[line].split(' ', 2);
-      if (parts.length !== 2) {
+      const parts = lines[line].split(' ');
+      if (parts.length < 2) {
         failed = true;
         console.log(`${addr}: ${line}: bad path`);
         continue;
       }
 
-      const [path_addr, path_name] = parts;
+      const path_addr = parts[0];
+      const path_name = parts.slice(1).join(' ');
       if (paths.has(path_name)) {
         failed = true;
         console.log(`${addr}: ${line}: path collision: ${path_name}`);
