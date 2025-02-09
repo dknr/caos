@@ -6,7 +6,6 @@ import data from "./data.ts";
 import tags from "./tags.ts";
 import path from "./path.ts";
 import { CaosOpts } from "../opts.ts";
-import auth from "./auth.ts";
 
 export const serveCaos = (caos: Caos, opts: CaosOpts) => {
   const hostUrl = new URL(opts.host);
@@ -45,8 +44,6 @@ export const serveCaos = (caos: Caos, opts: CaosOpts) => {
       throw e;
     }
   });
-  
-  app.use(auth(opts));
   app.use(router.routes());
   app.use(router.allowedMethods());
 
