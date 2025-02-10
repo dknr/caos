@@ -12,6 +12,10 @@ export type CaosClient = {
     add: (data: BodyInit) => Promise<CaosAddr>;
     get: (addr: CaosAddr) => Promise<CaosData | undefined>;
   }
+  name: {
+    get: (name: string) => Promise<string>;
+    set: (name: string, addr: string) => Promise<boolean>;
+  }
   tags: {
     all: (addr: CaosAddr) => Promise<CaosTags>;
     get: (addr: CaosAddr, tag: CaosTagKey) => Promise<CaosTagValue | undefined>;
@@ -44,6 +48,21 @@ export const buildClient = ({ host }: ClientConfig): CaosClient => ({
       const result = await fetch(`${host}/data/${addr}`);
       if (result.ok)
         return result.body!;
+    }
+  },
+  name: {
+    get: async (name) => {
+      const result = await fetch(`${host}/name/${name}`);
+      const addr = await result.text();
+      return addr;
+    },
+    set: async (name, addr) => {
+      const result = await fetch(`${host}/name/${name}`, {
+        method: 'post',
+        body: addr,
+      });
+      // TODO: do something about http status
+      return result.ok;
     }
   },
   tags: {

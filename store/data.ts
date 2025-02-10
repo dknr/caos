@@ -46,11 +46,13 @@ export const openCaosData = (config: CaosOpts) => {
         }
       }
     },
-    get: (addr: CaosAddr): Promise<CaosData | undefined> => Deno.open(nameFile(addr), {read: true})
+    get: (addr: CaosAddr): Promise<CaosData | undefined> =>
+      Deno.open(nameFile(addr), {read: true})
       .then((file) => file.readable)
       .catch(() => undefined),
-    has: (addr: CaosAddr) => Deno.stat(nameFile(addr))
-      .then((stat) => !!stat)
+    has: (addr: CaosAddr) =>
+      Deno.stat(nameFile(addr))
+      .then((stat) => !!stat)   // BUG: questionable assertion
       .catch(() => false),
   }
 }
