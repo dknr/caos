@@ -17,6 +17,7 @@ export const openCaos = (opts: CaosOpts): Caos => {
     addr: {
       all: meta.getAddrs,
       has: meta.hasAddr,
+      count: meta.countAddrs,
     },
     data: {
       add: async (stream) => {

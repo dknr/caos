@@ -56,6 +56,7 @@ export const serveCaos = (caos: Caos, opts: CaosOpts) => {
       log(`serving caos: http://localhost:${e.port}`);
       log(`host: ${host}`);
       log(`home: ${host}/${home}`);
+      log(`objs: ${caos.addr.count()}`);
     }
   );
   app.listen({ port: hostPort });

@@ -59,6 +59,10 @@ export const openCaosMeta = (opts: CaosOpts) => {
       [addr]
     ),
 
+    countAddrs: () => db.query<[number]>(
+      `select count(addr) from objs`
+    ).map(([count]) => count),
+
     getAddrs: (partial: CaosAddr) => db.query<[string]>(
       `select addr from objs where addr like ?`,
       [partial + '%']
