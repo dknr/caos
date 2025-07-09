@@ -1,6 +1,6 @@
 import { CaosConfig } from "./config.ts";
 import * as path from 'https://deno.land/std@0.192.0/path/mod.ts';
-import {DB} from 'https://deno.land/x/sqlite@v3.7.2/mod.ts';
+import {DB} from 'https://deno.land/x/sqlite@v3.9.1/mod.ts';
 import {CaosAddr, CaosTagKey} from "../types.ts";
 import { CaosOpts } from "../opts.ts";
 
