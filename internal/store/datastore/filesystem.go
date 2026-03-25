@@ -31,30 +31,38 @@ func (f *filesystemDatastore) Put(ctx context.Context, r io.Reader) (string, int
 	if err := ctx.Err(); err != nil {
 		return "", 0, err
 	}
-	// Read all data from the reader
-	data, err := io.ReadAll(r)
-	if err != nil {
-		return "", 0, err
-	}
-	if err := ctx.Err(); err != nil {
-		return "", 0, err
-	}
-	// Compute SHA-256 hash
-	hash := sha256.Sum256(data)
-	addr := hex.EncodeToString(hash[:])
 	// Ensure the root directory exists
 	if err := os.MkdirAll(f.root, 0o755); err != nil {
 		return "", 0, err
 	}
-	// Write the data to a file named by the address
-	filePath := filepath.Join(f.root, addr)
-	if err := os.WriteFile(filePath, data, 0o644); err != nil {
+	// Create temporary directory
+	tempDir := filepath.Join(f.root, "temp")
+	if err := os.MkdirAll(tempDir, 0o755); err != nil {
+		return "", 0, err
+	}
+	tmpFile, err := os.CreateTemp(tempDir, "tmp-")
+	if err != nil {
+		return "", 0, err
+	}
+	defer func() { _ = tmpFile.Close() }()
+	hasher := sha256.New()
+	writer := io.MultiWriter(tmpFile, hasher)
+	n, err := io.Copy(writer, r)
+	if err != nil {
+		_ = os.Remove(tmpFile.Name())
 		return "", 0, err
 	}
 	if err := ctx.Err(); err != nil {
+		_ = os.Remove(tmpFile.Name())
 		return "", 0, err
 	}
-	return addr, int64(len(data)), nil
+	addr := hex.EncodeToString(hasher.Sum(nil))
+	finalPath := filepath.Join(f.root, addr)
+	if err := os.Rename(tmpFile.Name(), finalPath); err != nil {
+		_ = os.Remove(tmpFile.Name())
+		return "", 0, err
+	}
+	return addr, n, nil
 }
 
 func (f *filesystemDatastore) Get(ctx context.Context, addr string) (io.ReadCloser, error) {
