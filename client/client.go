@@ -8,14 +8,11 @@ import (
 	"io"
 	"net/http"
 	"net/url"
-	"regexp"
 	"time"
 
+	"github.com/dknr/caos/internal/shared"
 	"github.com/dknr/caos/store"
 )
-
-// addrRegex matches a 64-character hexadecimal string (SHA-256)
-var addrRegex = regexp.MustCompile("^[0-9a-fA-F]{64}$")
 
 // Client provides methods to interact with a CAOS server over HTTP.
 type Client struct {
@@ -62,7 +59,7 @@ func (c *Client) Add(ctx context.Context, r io.Reader, contentType string) (stri
 
 	// Validate that we got a 64-character hex address
 	addrStr := addr.String()
-	if !addrRegex.MatchString(addrStr) {
+	if !shared.AddrRegex.MatchString(addrStr) {
 		return "", fmt.Errorf("invalid address received from server: %s", addrStr)
 	}
 
@@ -72,8 +69,8 @@ func (c *Client) Add(ctx context.Context, r io.Reader, contentType string) (stri
 // Get retrieves data from the CAOS server for the given address.
 func (c *Client) Get(ctx context.Context, addr string) (io.ReadCloser, error) {
 	// Validate address format
-	if !addrRegex.MatchString(addr) {
-		return nil, fmt.Errorf("address too short")
+	if !shared.AddrRegex.MatchString(addr) {
+		return nil, fmt.Errorf("invalid address format")
 	}
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, c.BaseURL+"/data/"+addr, nil)
@@ -97,8 +94,8 @@ func (c *Client) Get(ctx context.Context, addr string) (io.ReadCloser, error) {
 // Has checks if the CAOS server has data for the given address.
 func (c *Client) Has(ctx context.Context, addr string) (bool, error) {
 	// Validate address format
-	if !addrRegex.MatchString(addr) {
-		return false, fmt.Errorf("address too short")
+	if !shared.AddrRegex.MatchString(addr) {
+		return false, fmt.Errorf("invalid address format")
 	}
 
 	// We'll use the Get endpoint and check for 404
@@ -127,8 +124,8 @@ func (c *Client) Has(ctx context.Context, addr string) (bool, error) {
 // Note: This endpoint is not defined in the Level 0 API, so we're implementing it for completeness.
 func (c *Client) Delete(ctx context.Context, addr string) error {
 	// Validate address format
-	if !addrRegex.MatchString(addr) {
-		return fmt.Errorf("address too short")
+	if !shared.AddrRegex.MatchString(addr) {
+		return fmt.Errorf("invalid address format")
 	}
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodDelete, c.BaseURL+"/data/"+addr, nil)
@@ -152,8 +149,8 @@ func (c *Client) Delete(ctx context.Context, addr string) error {
 // GetTag retrieves a tag value from the CAOS server for the given address and tag.
 func (c *Client) GetTag(ctx context.Context, addr, tag string) (string, error) {
 	// Validate address format
-	if !addrRegex.MatchString(addr) {
-		return "", fmt.Errorf("address too short")
+	if !shared.AddrRegex.MatchString(addr) {
+		return "", fmt.Errorf("invalid address format")
 	}
 
 	u, err := url.Parse(c.BaseURL + "/data/" + addr + "/tags/" + tag)
@@ -190,8 +187,8 @@ func (c *Client) GetTag(ctx context.Context, addr, tag string) (string, error) {
 // SetTag sets a tag value on the CAOS server for the given address and tag.
 func (c *Client) SetTag(ctx context.Context, addr, tag, value string) error {
 	// Validate address format
-	if !addrRegex.MatchString(addr) {
-		return fmt.Errorf("address too short")
+	if !shared.AddrRegex.MatchString(addr) {
+		return fmt.Errorf("invalid address format")
 	}
 
 	u, err := url.Parse(c.BaseURL + "/data/" + addr + "/tags/" + tag)
@@ -221,8 +218,8 @@ func (c *Client) SetTag(ctx context.Context, addr, tag, value string) error {
 // GetTags retrieves all tags from the CAOS server for the given address.
 func (c *Client) GetTags(ctx context.Context, addr string) (map[string]string, error) {
 	// Validate address format
-	if !addrRegex.MatchString(addr) {
-		return nil, fmt.Errorf("address too short")
+	if !shared.AddrRegex.MatchString(addr) {
+		return nil, fmt.Errorf("invalid address format")
 	}
 
 	u, err := url.Parse(c.BaseURL + "/data/" + addr + "/tags")
@@ -260,8 +257,8 @@ func (c *Client) GetTags(ctx context.Context, addr string) (map[string]string, e
 // Note: This endpoint is not defined in the Level 0 API, so we're implementing it for completeness.
 func (c *Client) DeleteTag(ctx context.Context, addr, tag string) error {
 	// Validate address format
-	if !addrRegex.MatchString(addr) {
-		return fmt.Errorf("address too short")
+	if !shared.AddrRegex.MatchString(addr) {
+		return fmt.Errorf("invalid address format")
 	}
 
 	u, err := url.Parse(c.BaseURL + "/data/" + addr + "/tags/" + tag)

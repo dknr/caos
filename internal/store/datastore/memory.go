@@ -23,9 +23,15 @@ type inMemoryDatastore struct {
 }
 
 func (m *inMemoryDatastore) Put(ctx context.Context, r io.Reader) (string, int64, error) {
+	if err := ctx.Err(); err != nil {
+		return "", 0, err
+	}
 	// Read all data from the reader
 	data, err := io.ReadAll(r)
 	if err != nil {
+		return "", 0, err
+	}
+	if err := ctx.Err(); err != nil {
 		return "", 0, err
 	}
 	// Compute SHA-256 hash
@@ -33,22 +39,43 @@ func (m *inMemoryDatastore) Put(ctx context.Context, r io.Reader) (string, int64
 	addr := hex.EncodeToString(hash[:])
 	// Store the data
 	m.data[addr] = data
+	if err := ctx.Err(); err != nil {
+		return "", 0, err
+	}
 	return addr, int64(len(data)), nil
 }
 
 func (m *inMemoryDatastore) Get(ctx context.Context, addr string) (io.ReadCloser, error) {
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
 	if data, ok := m.data[addr]; ok {
 		return io.NopCloser(bytes.NewReader(data)), nil
+	}
+	if err := ctx.Err(); err != nil {
+		return nil, err
 	}
 	return nil, store.ErrNotFound
 }
 
 func (m *inMemoryDatastore) Has(ctx context.Context, addr string) (bool, error) {
+	if err := ctx.Err(); err != nil {
+		return false, err
+	}
 	_, ok := m.data[addr]
+	if err := ctx.Err(); err != nil {
+		return false, err
+	}
 	return ok, nil
 }
 
 func (m *inMemoryDatastore) Delete(ctx context.Context, addr string) error {
+	if err := ctx.Err(); err != nil {
+		return err
+	}
 	delete(m.data, addr)
+	if err := ctx.Err(); err != nil {
+		return err
+	}
 	return nil
 }

@@ -2,15 +2,13 @@ package server
 
 import (
 	"errors"
+	"fmt"
 	"io"
-	"regexp"
 
+	"github.com/dknr/caos/internal/shared"
 	"github.com/dknr/caos/store"
 	"github.com/gin-gonic/gin"
 )
-
-// addrRegex matches a 64-character hexadecimal string (SHA-256)
-var addrRegex = regexp.MustCompile("^[0-9a-fA-F]{64}$")
 
 // Server represents a CAOS server.
 type Server struct {
@@ -40,6 +38,8 @@ func (s *Server) Start() error {
 	// Define routes
 	r.POST("/data", s.handleDataPost)
 	r.GET("/data/:addr", s.handleDataGet)
+	r.DELETE("/data/:addr", s.handleDataDelete)
+	r.HEAD("/data/:addr", s.handleDataHead)
 
 	// Start the server
 	return r.Run(s.Addr)
@@ -82,13 +82,13 @@ func (s *Server) handleDataGet(c *gin.Context) {
 	addr := c.Param("addr")
 
 	// Validate address format: 64 hex characters
-	if !addrRegex.MatchString(addr) {
-		c.JSON(400, gin.H{"error": "address too short"})
+	if !shared.AddrRegex.MatchString(addr) {
+		c.JSON(400, gin.H{"error": "invalid address format"})
 		return
 	}
 
 	// Check if the address exists
-	exists, err := s.DataStore.Has(c.Request.Context(), addr)
+	exists, err := s.MetaStore.HasObject(c.Request.Context(), addr)
 	if err != nil {
 		c.JSON(500, gin.H{"error": "failed to check address"})
 		return
@@ -131,6 +131,75 @@ func (s *Server) handleDataGet(c *gin.Context) {
 		c.AbortWithStatus(500)
 		return
 	}
+}
+
+// handleDataDelete handles DELETE /data/:addr requests.
+func (s *Server) handleDataDelete(c *gin.Context) {
+	addr := c.Param("addr")
+
+	// Validate address format: 64 hex characters
+	if !shared.AddrRegex.MatchString(addr) {
+		c.JSON(400, gin.H{"error": "invalid address format"})
+		return
+	}
+
+	// Delete the data
+	err := s.DataStore.Delete(c.Request.Context(), addr)
+	if err != nil {
+		c.JSON(500, gin.H{"error": "failed to delete data"})
+		return
+	}
+
+	// Return 204 No Content
+	c.Status(204)
+}
+
+// handleDataHead handles HEAD /data/:addr requests.
+func (s *Server) handleDataHead(c *gin.Context) {
+	addr := c.Param("addr")
+
+	// Validate address format: 64 hex characters
+	if !shared.AddrRegex.MatchString(addr) {
+		c.JSON(400, gin.H{"error": "invalid address format"})
+		return
+	}
+
+	// Check if the address exists using MetaStore
+	exists, err := s.MetaStore.HasObject(c.Request.Context(), addr)
+	if err != nil {
+		c.JSON(500, gin.H{"error": "failed to check address"})
+		return
+	}
+	if !exists {
+		c.JSON(404, gin.H{"error": "address not found"})
+		return
+	}
+
+	// Get the type and size
+	contentType, err := s.MetaStore.GetType(c.Request.Context(), addr)
+	if err != nil {
+		if errors.Is(err, store.ErrNotFound) {
+			contentType = "application/octet-stream"
+		} else {
+			c.JSON(500, gin.H{"error": "failed to get type"})
+			return
+		}
+	}
+	size, err := s.MetaStore.GetSize(c.Request.Context(), addr)
+	if err != nil {
+		if errors.Is(err, store.ErrNotFound) {
+			// This shouldn't happen if HasObject returned true, but handle gracefully
+			c.JSON(500, gin.H{"error": "failed to get size"})
+			return
+		}
+		c.JSON(500, gin.H{"error": "failed to get size"})
+		return
+	}
+
+	// Set headers
+	c.Header("Content-Type", contentType)
+	c.Header("Content-Length", fmt.Sprintf("%d", size))
+	c.Status(200)
 }
 
 

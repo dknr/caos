@@ -6,6 +6,8 @@ import (
 	"os"
 	"strings"
 	"testing"
+
+	"github.com/dknr/caos/internal/shared"
 )
 
 func TestFilesystemDatastore_PutGet(t *testing.T) {
@@ -27,7 +29,7 @@ func TestFilesystemDatastore_PutGet(t *testing.T) {
 	}
 
 	// Validate address format (64 hex characters)
-	if !addrRegex.MatchString(addr) {
+	if !shared.AddrRegex.MatchString(addr) {
 		t.Fatalf("expected 64 char hex address, got %s", addr)
 	}
 
@@ -81,7 +83,7 @@ func TestFilesystemDatastore_Has(t *testing.T) {
 
 	// Test Has for non-existing addr
 	fakeAddr := "0000000000000000000000000000000000000000000000000000000000000000"
-	if !addrRegex.MatchString(fakeAddr) {
+	if !shared.AddrRegex.MatchString(fakeAddr) {
 		t.Fatalf("test fakeAddr is not a valid hex address")
 	}
 	exists, err = ds.Has(ctx, fakeAddr)

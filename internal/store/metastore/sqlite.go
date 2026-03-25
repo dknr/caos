@@ -39,23 +39,20 @@ func prepareSQLiteMetaStoreDb(db *sql.DB) error {
 	`); err != nil {
 		return err
 	}
+	// Set journal mode to WAL for better concurrency
+	if _, err := db.Exec(`PRAGMA journal_mode=WAL;`); err != nil {
+		return err
+	}
 	return nil
 }
 
 func (m *sqliteMetaStore) AddObject(ctx context.Context, addr string, size int64, typ string) error {
-	// Ensure the addr exists in objs table (insert if not exists)
+	// Insert new object; error if duplicate
 	_, err := m.db.ExecContext(ctx, `
-		INSERT OR IGNORE INTO objs (addr, size, type) VALUES (?, ?, ?)
+		INSERT INTO objs (addr, size, type) VALUES (?, ?, ?)
 	`, addr, size, typ)
 	if err != nil {
 		return fmt.Errorf("inserting addr into objs: %w", err)
-	}
-	// Update the size and type
-	_, err = m.db.ExecContext(ctx, `
-		UPDATE objs SET size = ?, type = ? WHERE addr = ?
-	`, size, typ, addr)
-	if err != nil {
-		return fmt.Errorf("updating size and type: %w", err)
 	}
 	return nil
 }
@@ -97,6 +94,18 @@ func (m *sqliteMetaStore) GetSize(ctx context.Context, addr string) (int64, erro
 		return 0, fmt.Errorf("querying size: %w", err)
 	}
 	return size, nil
+}
+
+// HasObject returns true if the object with the given address exists.
+func (m *sqliteMetaStore) HasObject(ctx context.Context, addr string) (bool, error) {
+	var exists bool
+	err := m.db.QueryRowContext(ctx, `
+		SELECT EXISTS(SELECT 1 FROM objs WHERE addr = ?)
+	`, addr).Scan(&exists)
+	if err != nil {
+		return false, fmt.Errorf("checking object existence: %w", err)
+	}
+	return exists, nil
 }
 
 // Close closes the database connection.

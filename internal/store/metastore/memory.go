@@ -28,6 +28,9 @@ type inMemoryMetaStore struct {
 func (m *inMemoryMetaStore) AddObject(ctx context.Context, addr string, size int64, typ string) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
+	if _, exists := m.objs[addr]; exists {
+		return store.ErrNotFound // Using ErrNotFound to indicate "already exists" for now - we might want a specific error
+	}
 	m.objs[addr] = objMetadata{size: size, typ: typ}
 	return nil
 }
@@ -59,6 +62,14 @@ func (m *inMemoryMetaStore) GetSize(ctx context.Context, addr string) (int64, er
 		return obj.size, nil
 	}
 	return 0, store.ErrNotFound
+}
+
+// HasObject returns true if the object with the given address exists.
+func (m *inMemoryMetaStore) HasObject(ctx context.Context, addr string) (bool, error) {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	_, exists := m.objs[addr]
+	return exists, nil
 }
 
 func (m *inMemoryMetaStore) Close() error {
