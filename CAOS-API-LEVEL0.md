@@ -7,17 +7,20 @@ CAOS (Content Addressed Object Store) is a simple HTTP API for storing and retri
 ## Core Concepts
 
 ### Content Addressing
+
 Objects are stored by their SHA-256 hash (address). Each address is:
 - **64 hexadecimal characters** (full SHA-256)
 - Unique and immutable
 - Deterministic (same content = same address)
 
 ### Tags (Metadata)
+
 Objects can have arbitrary metadata tags. Two special tags are auto-set:
 - `size`: Object size in bytes (immutable)
 - `type`: Content type (defaults to `application/octet-stream`)
 
 ### Content Type Verification
+
 Clients can specify a Content-Type header when adding data. The server must verify the Content-Type is valid and that the data matches the alleged type.
 
 ## Base URL
@@ -76,30 +79,75 @@ Retrieves data for a given address.
 **Response:**
 - Status:
   - `200 OK`: Data retrieved successfully
-  - `400 Bad Request`: Address prefix too short (< 64 characters)
-  - `404 Not Found`: No addresses match the query
+  - `400 Bad Request`: Invalid address format (must be 64 hex characters)
+  - `404 Not Found`: No address matches the query
 - Headers:
   - `Content-Type`: Content type tag value, or `application/octet-stream` if not set
 - Body: Binary data
 
 ---
 
+### 3. Delete Data
+
+**DELETE** `/data/:addr`
+
+Deletes the data for a given address.
+
+**Path Parameters:**
+- `addr`: 64-character SHA-256 hex string
+
+**Request:**
+- Method: `DELETE`
+
+**Response:**
+- Status:
+  - `204 No Content`: Data deleted successfully (or did not exist)
+  - `400 Bad Request`: Invalid address format (must be 64 hex characters)
+  - `500 Internal Server Error`: Server error
+
+---
+
+### 4. Head Data
+
+**HEAD** `/data/:addr`
+
+Returns metadata for a given address without the body.
+
+**Path Parameters:**
+- `addr`: 64-character SHA-256 hex string
+
+**Request:**
+- Method: `HEAD`
+
+**Response:**
+- Status:
+  - `200 OK`: Address exists
+  - `400 Bad Request`: Invalid address format (must be 64 hex characters)
+  - `404 Not Found`: No address matches the query
+- Headers:
+  - `Content-Type`: Content type tag value, or `application/octet-stream` if not set
+  - `Content-Length`: Size of the data in bytes
+- Body: None
+
+---
+
 ## Error Codes
 
-| Code | Description | When to Use |
-|------|-------------|-------------|
-| `200` | Success | Data retrieved successfully |
-| `400` | Bad Request | Invalid address (too short) or invalid content type |
-| `500` | Internal Server Error | Server error |
+|| Code | Description | When to Use |
+||------|-------------|-------------|
+|| `200` | Success | Data retrieved successfully |
+|| `204` | No Content | Data deleted successfully (or did not exist) |
+|| `400` | Bad Request | Invalid address format or invalid content type |
+|| `500` | Internal Server Error | Server error |
 
 ## Compliance
 
 A CAOS server implementation is Level 0 compliant if it:
 
-1. Implements two endpoints (POST /data, GET /data/:addr)
+1. Implements the required endpoints (POST /data, GET /data/:addr)
 2. Uses SHA-256 for content addressing
 3. Returns 64-character hexadecimal addresses
-4. Validates address length (reject < 64 chars)
+4. Validates address format (must be 64 hex characters)
 5. Validates Content-Type header (reject unknown types)
 6. Performs Content-Type verification when provided
 7. Properly handles errors with correct status codes
