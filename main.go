@@ -20,6 +20,7 @@ func main() {
 	root.AddCommand(cmd.AddCmd)
 	root.AddCommand(cmd.GetCmd)
 	root.AddCommand(cmd.HelpCmd)
+	root.AddCommand(cmd.InitCmd)
 
 	if err := fang.Execute(context.Background(), root); err != nil {
 		log.Fatal(err)

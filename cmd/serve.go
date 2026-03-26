@@ -24,8 +24,8 @@ var ServeCmd = &cobra.Command{
 		}
 
 		// Create stores
-		dataStore := datastore.NewFilesystemDatastore("./data")
-		metaStore, err := metastore.NewSQLiteMetaStore("./meta/caos.db")
+		dataStore := datastore.NewFilesystemDatastore("./caos-store/caos-datastore")
+		metaStore, err := metastore.NewSQLiteMetaStore("./caos-store/caos-metastore/caos-objs.db")
 		if err != nil {
 			log.Fatal(err)
 		}
