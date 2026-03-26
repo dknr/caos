@@ -309,3 +309,179 @@ func TestHandleDataHead(t *testing.T) {
 		t.Fatalf("Expected status %d for HEAD on non-existent address, got %d", http.StatusNotFound, w3.Code)
 	}
 }
+
+// TestHandleDataPostInvalidContentType tests that an invalid Content-Type header returns 400.
+func TestHandleDataPostInvalidContentType(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	dataStore := datastore.NewInMemoryDatastore()
+	metaStore := metastore.NewInMemoryMetaStore()
+	srv := NewServer(dataStore, metaStore, ":0")
+	r := gin.New()
+	r.POST("/data", srv.handleDataPost)
+
+	// Invalid Content-Type (no slash)
+	body := bytes.NewReader([]byte("some data"))
+	req, err := http.NewRequest(http.MethodPost, "/data", body)
+	if err != nil {
+		t.Fatalf("Failed to create request: %v", err)
+	}
+	req.Header.Set("Content-Type", "invalid")
+
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+
+	if w.Code != http.StatusBadRequest {
+		t.Fatalf("Expected status %d for invalid Content-Type, got %d", http.StatusBadRequest, w.Code)
+	}
+}
+
+// TestHandleDataPostMissingContentType tests that a missing Content-Type header defaults to application/octet-stream and succeeds.
+func TestHandleDataPostMissingContentType(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	dataStore := datastore.NewInMemoryDatastore()
+	metaStore := metastore.NewInMemoryMetaStore()
+	srv := NewServer(dataStore, metaStore, ":0")
+	r := gin.New()
+	r.POST("/data", srv.handleDataPost)
+
+	// No Content-Type header
+	body := bytes.NewReader([]byte("some data"))
+	req, err := http.NewRequest(http.MethodPost, "/data", body)
+	if err != nil {
+		t.Fatalf("Failed to create request: %v", err)
+	}
+	// Do not set Content-Type
+
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("Expected status %d for missing Content-Type, got %d", http.StatusOK, w.Code)
+	}
+
+	// The response body should be a 64-character hex address
+	addr := w.Body.String()
+	if len(addr) != 64 {
+		t.Fatalf("Expected 64-character address, got %d: %s", len(addr), addr)
+	}
+	// Validate it's hex
+	for _, c := range addr {
+		if c < '0' || c > '9' {
+			if c < 'a' || c > 'f' {
+				if c < 'A' || c > 'F' {
+					t.Fatalf("Address contains non-hex character: %c", c)
+				}
+			}
+		}
+	}
+}
+
+// TestHandleDataPostTextNonUTF8 tests that providing non-UTF-8 data for a text/* Content-Type returns 400.
+func TestHandleDataPostTextNonUTF8(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	dataStore := datastore.NewInMemoryDatastore()
+	metaStore := metastore.NewInMemoryMetaStore()
+	srv := NewServer(dataStore, metaStore, ":0")
+	r := gin.New()
+	r.POST("/data", srv.handleDataPost)
+
+	// Create a byte slice with invalid UTF-8 (e.g., 0xFF 0xFE)
+	invalidUTF8 := []byte{0xFF, 0xFE, 0x00, 0x01}
+	body := bytes.NewReader(invalidUTF8)
+	req, err := http.NewRequest(http.MethodPost, "/data", body)
+	if err != nil {
+		t.Fatalf("Failed to create request: %v", err)
+	}
+	req.Header.Set("Content-Type", "text/plain")
+
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+
+	if w.Code != http.StatusBadRequest {
+		t.Fatalf("Expected status %d for non-UTF-8 text data, got %d", http.StatusBadRequest, w.Code)
+	}
+}
+
+// TestHandleDataPostTextUTF8 tests that valid UTF-8 data for a text/* Content-Type succeeds.
+func TestHandleDataPostTextUTF8(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	dataStore := datastore.NewInMemoryDatastore()
+	metaStore := metastore.NewInMemoryMetaStore()
+	srv := NewServer(dataStore, metaStore, ":0")
+	r := gin.New()
+	r.POST("/data", srv.handleDataPost)
+
+	// Valid UTF-8 data
+	validUTF8 := []byte("Hello, 世界") // Contains Chinese characters
+	body := bytes.NewReader(validUTF8)
+	req, err := http.NewRequest(http.MethodPost, "/data", body)
+	if err != nil {
+		t.Fatalf("Failed to create request: %v", err)
+	}
+	req.Header.Set("Content-Type", "text/plain; charset=utf-8")
+
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("Expected status %d for valid UTF-8 text data, got %d", http.StatusOK, w.Code)
+	}
+
+	// The response body should be a 64-character hex address
+	addr := w.Body.String()
+	if len(addr) != 64 {
+		t.Fatalf("Expected 64-character address, got %d: %s", len(addr), addr)
+	}
+	// Validate it's hex
+	for _, c := range addr {
+		if c < '0' || c > '9' {
+			if c < 'a' || c > 'f' {
+				if c < 'A' || c > 'F' {
+					t.Fatalf("Address contains non-hex character: %c", c)
+				}
+			}
+		}
+	}
+}
+
+// TestHandleDataPostApplicationJsonBinary tests that binary data (non-UTF-8) with application/json Content-Type succeeds.
+func TestHandleDataPostApplicationJsonBinary(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	dataStore := datastore.NewInMemoryDatastore()
+	metaStore := metastore.NewInMemoryMetaStore()
+	srv := NewServer(dataStore, metaStore, ":0")
+	r := gin.New()
+	r.POST("/data", srv.handleDataPost)
+
+	// Binary data that is not valid UTF-8
+	binaryData := []byte{0x80, 0x81, 0x82, 0x83, 0xFF, 0xFE}
+	body := bytes.NewReader(binaryData)
+	req, err := http.NewRequest(http.MethodPost, "/data", body)
+	if err != nil {
+		t.Fatalf("Failed to create request: %v", err)
+	}
+	req.Header.Set("Content-Type", "application/json")
+
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("Expected status %d for application/json binary data, got %d", http.StatusOK, w.Code)
+	}
+
+	// The response body should be a 64-character hex address
+	addr := w.Body.String()
+	if len(addr) != 64 {
+		t.Fatalf("Expected 64-character address, got %d: %s", len(addr), addr)
+	}
+	// Validate it's hex
+	for _, c := range addr {
+		if c < '0' || c > '9' {
+			if c < 'a' || c > 'f' {
+				if c < 'A' || c > 'F' {
+					t.Fatalf("Address contains non-hex character: %c", c)
+				}
+			}
+		}
+	}
+}

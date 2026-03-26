@@ -1,10 +1,13 @@
 package server
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"io"
 	"mime"
+	"strings"
+	"unicode/utf8"
 
 	"github.com/dknr/caos/internal/shared"
 	"github.com/dknr/caos/store"
@@ -56,14 +59,32 @@ func (s *Server) handleDataPost(c *gin.Context) {
 
 	// Parse and validate Content-Type
 	mediatype, _, err := mime.ParseMediaType(contentType)
-	if err != nil {
+	if err != nil || !strings.Contains(mediatype, "/") {
 		c.JSON(400, gin.H{"error": "invalid content type"})
 		return
 	}
 	contentType = mediatype
 
+	// Read first 512 bytes to detect actual content type
+	sample := make([]byte, 512)
+	n, err := c.Request.Body.Read(sample)
+	if err != nil && err != io.EOF {
+		c.JSON(500, gin.H{"error": "failed to read body"})
+		return
+	}
+	sample = sample[:n]
+
+	// If declared type is text/* validate UTF-8 (using the sample as a heuristic)
+	if strings.HasPrefix(contentType, "text/") && !utf8.Valid(sample) {
+		c.JSON(400, gin.H{"error": "invalid UTF-8 data for text content type"})
+		return
+	}
+
+	// Create a reader that first reads the sample, then the rest of the body
+	fullReader := io.MultiReader(bytes.NewReader(sample), c.Request.Body)
+
 	// Store the data
-	addr, size, err := s.DataStore.Put(c.Request.Context(), c.Request.Body)
+	addr, size, err := s.DataStore.Put(c.Request.Context(), fullReader)
 	if err != nil {
 		c.JSON(500, gin.H{"error": "failed to store data"})
 		return
