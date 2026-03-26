@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"mime"
 
 	"github.com/dknr/caos/internal/shared"
 	"github.com/dknr/caos/store"
@@ -53,11 +54,13 @@ func (s *Server) handleDataPost(c *gin.Context) {
 		contentType = "application/octet-stream"
 	}
 
-	// Validate Content-Type (for simplicity, we accept any non-empty string)
-	if contentType == "" {
+	// Parse and validate Content-Type
+	mediatype, _, err := mime.ParseMediaType(contentType)
+	if err != nil {
 		c.JSON(400, gin.H{"error": "invalid content type"})
 		return
 	}
+	contentType = mediatype
 
 	// Store the data
 	addr, size, err := s.DataStore.Put(c.Request.Context(), c.Request.Body)
