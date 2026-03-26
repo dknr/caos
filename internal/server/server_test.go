@@ -19,7 +19,10 @@ func TestHandleDataPost(t *testing.T) {
 
 	// Create in-memory stores for testing
 	dataStore := datastore.NewInMemoryDatastore()
-	metaStore := metastore.NewInMemoryMetaStore()
+	metaStore, err := metastore.NewSQLiteMetaStore(":memory:")
+	if err != nil {
+		t.Fatalf("Failed to create SQLite metastore: %v", err)
+	}
 
 	// Create server
 	srv := NewServer(dataStore, metaStore, ":0") // :0 lets OS pick a free port
@@ -89,7 +92,7 @@ func TestHandleDataPost(t *testing.T) {
 		t.Fatalf("Expected type 'text/plain', got %s", typ)
 	}
 
-	// Try to add the same data again - should fail because AddObject now returns error for duplicates
+	// Try to add the same data again - should succeed because POST is idempotent
 	body2 := bytes.NewReader([]byte("hello world"))
 	req2, err := http.NewRequest(http.MethodPost, "/data", body2)
 	if err != nil {
@@ -98,9 +101,14 @@ func TestHandleDataPost(t *testing.T) {
 	req2.Header.Set("Content-Type", "text/plain")
 	w2 := httptest.NewRecorder()
 	r.ServeHTTP(w2, req2)
-	// Should get an error since we're trying to add the same object again
-	if w2.Code != http.StatusInternalServerError {
-		t.Fatalf("Expected status %d when adding duplicate object, got %d", http.StatusInternalServerError, w2.Code)
+	// Should get 200 OK since POST is idempotent (same data returns same address)
+	if w2.Code != http.StatusOK {
+		t.Fatalf("Expected status %d when adding duplicate object (idempotent), got %d", http.StatusOK, w2.Code)
+	}
+	// Should return the same address
+	addr2 := w2.Body.String()
+	if addr != addr2 {
+		t.Fatalf("Expected same address for duplicate data, got %s", addr2)
 	}
 }
 
@@ -110,7 +118,10 @@ func TestHandleDataGet(t *testing.T) {
 
 	// Create in-memory stores for testing
 	dataStore := datastore.NewInMemoryDatastore()
-	metaStore := metastore.NewInMemoryMetaStore()
+	metaStore, err := metastore.NewSQLiteMetaStore(":memory:")
+	if err != nil {
+		t.Fatalf("Failed to create SQLite metastore: %v", err)
+	}
 
 	// Create server
 	srv := NewServer(dataStore, metaStore, ":0")
@@ -170,7 +181,10 @@ func TestHandleDataDelete(t *testing.T) {
 
 	// Create in-memory stores for testing
 	dataStore := datastore.NewInMemoryDatastore()
-	metaStore := metastore.NewInMemoryMetaStore()
+	metaStore, err := metastore.NewSQLiteMetaStore(":memory:")
+	if err != nil {
+		t.Fatalf("Failed to create SQLite metastore: %v", err)
+	}
 
 	// Create server
 	srv := NewServer(dataStore, metaStore, ":0")
@@ -244,7 +258,10 @@ func TestHandleDataHead(t *testing.T) {
 
 	// Create in-memory stores for testing
 	dataStore := datastore.NewInMemoryDatastore()
-	metaStore := metastore.NewInMemoryMetaStore()
+	metaStore, err := metastore.NewSQLiteMetaStore(":memory:")
+	if err != nil {
+		t.Fatalf("Failed to create SQLite metastore: %v", err)
+	}
 
 	// Create server
 	srv := NewServer(dataStore, metaStore, ":0")
@@ -314,7 +331,10 @@ func TestHandleDataHead(t *testing.T) {
 func TestHandleDataPostInvalidContentType(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	dataStore := datastore.NewInMemoryDatastore()
-	metaStore := metastore.NewInMemoryMetaStore()
+	metaStore, err := metastore.NewSQLiteMetaStore(":memory:")
+	if err != nil {
+		t.Fatalf("Failed to create SQLite metastore: %v", err)
+	}
 	srv := NewServer(dataStore, metaStore, ":0")
 	r := gin.New()
 	r.POST("/data", srv.handleDataPost)
@@ -339,7 +359,10 @@ func TestHandleDataPostInvalidContentType(t *testing.T) {
 func TestHandleDataPostMissingContentType(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	dataStore := datastore.NewInMemoryDatastore()
-	metaStore := metastore.NewInMemoryMetaStore()
+	metaStore, err := metastore.NewSQLiteMetaStore(":memory:")
+	if err != nil {
+		t.Fatalf("Failed to create SQLite metastore: %v", err)
+	}
 	srv := NewServer(dataStore, metaStore, ":0")
 	r := gin.New()
 	r.POST("/data", srv.handleDataPost)
@@ -380,7 +403,10 @@ func TestHandleDataPostMissingContentType(t *testing.T) {
 func TestHandleDataPostTextNonUTF8(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	dataStore := datastore.NewInMemoryDatastore()
-	metaStore := metastore.NewInMemoryMetaStore()
+	metaStore, err := metastore.NewSQLiteMetaStore(":memory:")
+	if err != nil {
+		t.Fatalf("Failed to create SQLite metastore: %v", err)
+	}
 	srv := NewServer(dataStore, metaStore, ":0")
 	r := gin.New()
 	r.POST("/data", srv.handleDataPost)
@@ -406,7 +432,10 @@ func TestHandleDataPostTextNonUTF8(t *testing.T) {
 func TestHandleDataPostTextUTF8(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	dataStore := datastore.NewInMemoryDatastore()
-	metaStore := metastore.NewInMemoryMetaStore()
+	metaStore, err := metastore.NewSQLiteMetaStore(":memory:")
+	if err != nil {
+		t.Fatalf("Failed to create SQLite metastore: %v", err)
+	}
 	srv := NewServer(dataStore, metaStore, ":0")
 	r := gin.New()
 	r.POST("/data", srv.handleDataPost)
@@ -448,7 +477,10 @@ func TestHandleDataPostTextUTF8(t *testing.T) {
 func TestHandleDataPostApplicationJsonBinary(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	dataStore := datastore.NewInMemoryDatastore()
-	metaStore := metastore.NewInMemoryMetaStore()
+	metaStore, err := metastore.NewSQLiteMetaStore(":memory:")
+	if err != nil {
+		t.Fatalf("Failed to create SQLite metastore: %v", err)
+	}
 	srv := NewServer(dataStore, metaStore, ":0")
 	r := gin.New()
 	r.POST("/data", srv.handleDataPost)

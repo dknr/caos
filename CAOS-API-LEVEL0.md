@@ -42,6 +42,8 @@ All addresses must be 64-character hexadecimal strings representing a SHA-256 ha
 **POST** `/data`
 
 Stores a new data object and returns its SHA-256 address.
+The operation is idempotent: posting identical data multiple times 
+will return the same address and preserve existing metadata.
 
 **Request:**
 - Method: `POST`
@@ -153,6 +155,7 @@ A CAOS server implementation is Level 0 compliant if it:
 7. Properly handles errors with correct status codes
 8. Automatically sets 'size' and 'type' tags
 9. Supports binary data
+10. Implements POST /data as an idempotent operation
 
 ## Version History
 
