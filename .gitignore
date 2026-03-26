@@ -4,3 +4,4 @@ node_modules
 dist
 AGENTS.md
 caos
+caos-store/
