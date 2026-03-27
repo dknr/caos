@@ -3,15 +3,12 @@ package client
 import (
 	"bytes"
 	"context"
-	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
-	"net/url"
 	"time"
 
 	"github.com/dknr/caos/internal/shared"
-	"github.com/dknr/caos/store"
 )
 
 // Client provides methods to interact with a CAOS server over HTTP.
@@ -145,142 +142,3 @@ func (c *Client) Delete(ctx context.Context, addr string) error {
 
 	return nil
 }
-
-// GetTag retrieves a tag value from the CAOS server for the given address and tag.
-func (c *Client) GetTag(ctx context.Context, addr, tag string) (string, error) {
-	// Validate address format
-	if !shared.AddrRegex.MatchString(addr) {
-		return "", fmt.Errorf("invalid address format")
-	}
-
-	u, err := url.Parse(c.BaseURL + "/data/" + addr + "/tags/" + tag)
-	if err != nil {
-		return "", err
-	}
-
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, u.String(), nil)
-	if err != nil {
-		return "", err
-	}
-
-	resp, err := c.HTTPClient.Do(req)
-	if err != nil {
-		return "", err
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode == http.StatusNotFound {
-		return "", store.ErrNotFound
-	}
-	if resp.StatusCode != http.StatusOK {
-		return "", fmt.Errorf("server returned status %d: %s", resp.StatusCode, resp.Status)
-	}
-
-	var value bytes.Buffer
-	if _, err := io.Copy(&value, resp.Body); err != nil {
-		return "", err
-	}
-
-	return value.String(), nil
-}
-
-// SetTag sets a tag value on the CAOS server for the given address and tag.
-func (c *Client) SetTag(ctx context.Context, addr, tag, value string) error {
-	// Validate address format
-	if !shared.AddrRegex.MatchString(addr) {
-		return fmt.Errorf("invalid address format")
-	}
-
-	u, err := url.Parse(c.BaseURL + "/data/" + addr + "/tags/" + tag)
-	if err != nil {
-		return err
-	}
-
-	req, err := http.NewRequestWithContext(ctx, http.MethodPut, u.String(), bytes.NewBufferString(value))
-	if err != nil {
-		return err
-	}
-	req.Header.Set("Content-Type", "text/plain")
-
-	resp, err := c.HTTPClient.Do(req)
-	if err != nil {
-		return err
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusNoContent && resp.StatusCode != http.StatusNotFound {
-		return fmt.Errorf("server returned status %d: %s", resp.StatusCode, resp.Status)
-	}
-
-	return nil
-}
-
-// GetTags retrieves all tags from the CAOS server for the given address.
-func (c *Client) GetTags(ctx context.Context, addr string) (map[string]string, error) {
-	// Validate address format
-	if !shared.AddrRegex.MatchString(addr) {
-		return nil, fmt.Errorf("invalid address format")
-	}
-
-	u, err := url.Parse(c.BaseURL + "/data/" + addr + "/tags")
-	if err != nil {
-		return nil, err
-	}
-
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, u.String(), nil)
-	if err != nil {
-		return nil, err
-	}
-
-	resp, err := c.HTTPClient.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode == http.StatusNotFound {
-		return nil, store.ErrNotFound
-	}
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("server returned status %d: %s", resp.StatusCode, resp.Status)
-	}
-
-	var tags map[string]string
-	if err := json.NewDecoder(resp.Body).Decode(&tags); err != nil {
-		return nil, err
-	}
-
-	return tags, nil
-}
-
-// DeleteTag removes a tag from the CAOS server for the given address and tag.
-// Note: This endpoint is not defined in the Level 0 API, so we're implementing it for completeness.
-func (c *Client) DeleteTag(ctx context.Context, addr, tag string) error {
-	// Validate address format
-	if !shared.AddrRegex.MatchString(addr) {
-		return fmt.Errorf("invalid address format")
-	}
-
-	u, err := url.Parse(c.BaseURL + "/data/" + addr + "/tags/" + tag)
-	if err != nil {
-		return err
-	}
-
-	req, err := http.NewRequestWithContext(ctx, http.MethodDelete, u.String(), nil)
-	if err != nil {
-		return err
-	}
-
-	resp, err := c.HTTPClient.Do(req)
-	if err != nil {
-		return err
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusNoContent && resp.StatusCode != http.StatusNotFound {
-		return fmt.Errorf("server returned status %d: %s", resp.StatusCode, resp.Status)
-	}
-
-	return nil
-}
-
