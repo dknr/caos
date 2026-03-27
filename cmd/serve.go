@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"log"
+	"context"
 	"os"
 	"os/signal"
 	"syscall"
@@ -34,19 +35,20 @@ var ServeCmd = &cobra.Command{
 		// Create server
 		srv := server.NewServer(dataStore, metaStore, addr)
 
-		// Start server in a goroutine
-		go func() {
-			log.Printf("Starting CAOS server on %s", addr)
-			if err := srv.Start(); err != nil {
-				log.Fatalf("Server failed to start: %v", err)
-			}
-		}()
+		// Start server
+		log.Printf("Starting CAOS server on %s", addr)
+		if err := srv.Start(); err != nil {
+			log.Fatalf("Server failed to start: %v", err)
+		}
 
 		// Wait for interrupt signal to gracefully shutdown
 		c := make(chan os.Signal, 1)
 		signal.Notify(c, os.Interrupt, syscall.SIGTERM)
 		<-c
 		log.Println("Shutting down server...")
-		// TODO: Implement graceful shutdown
+		// Stop the server gracefully
+		if err := srv.Stop(context.Background()); err != nil {
+			log.Fatalf("Failed to stop server gracefully: %v", err)
+		}
 	},
 }

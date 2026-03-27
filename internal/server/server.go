@@ -2,10 +2,13 @@ package server
 
 import (
 	"bytes"
+	"context"
 	"errors"
 	"fmt"
 	"io"
+	"log"
 	"mime"
+	"net/http"
 	"strings"
 	"unicode/utf8"
 
@@ -19,6 +22,7 @@ type Server struct {
 	DataStore store.DataStore
 	MetaStore store.MetaStore
 	Addr      string // e.g., ":31923"
+	server    *http.Server
 }
 
 // NewServer creates a new CAOS server with the given stores and address.
@@ -30,7 +34,7 @@ func NewServer(ds store.DataStore, ms store.MetaStore, addr string) *Server {
 	}
 }
 
-// Start starts the server and blocks until it is stopped.
+// Start starts the server and returns immediately. It does not block.
 func (s *Server) Start() error {
 	gin.SetMode(gin.ReleaseMode) // Use release mode to reduce logging
 	r := gin.New()
@@ -45,8 +49,24 @@ func (s *Server) Start() error {
 	r.DELETE("/data/:addr", s.handleDataDelete)
 	r.HEAD("/data/:addr", s.handleDataHead)
 
-	// Start the server
-	return r.Run(s.Addr)
+	s.server = &http.Server{
+		Addr:    s.Addr,
+		Handler: r,
+	}
+
+	// Start the server in a goroutine
+	go func() {
+		if err := s.server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			log.Printf("Server failed to start: %v", err)
+		}
+	}()
+
+	return nil
+}
+
+// Stop stops the server gracefully.
+func (s *Server) Stop(ctx context.Context) error {
+	return s.server.Shutdown(ctx)
 }
 
 // handleDataPost handles POST /data requests.
