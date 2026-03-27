@@ -92,8 +92,11 @@ func (s *Server) handleDataPost(c *gin.Context) {
 
 	// Set the size and type
 	if err := s.MetaStore.AddObject(c.Request.Context(), addr, size, contentType); err != nil {
-		c.JSON(500, gin.H{"error": "failed to set metadata"})
-		return
+		if err != store.ErrObjectExists {
+			c.JSON(500, gin.H{"error": "failed to set metadata"})
+			return
+		}
+		// Object already exists; metadata is preserved as required by spec.
 	}
 
 	// Return the address as plain text

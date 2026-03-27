@@ -47,12 +47,19 @@ func prepareSQLiteMetaStoreDb(db *sql.DB) error {
 }
 
 func (m *sqliteMetaStore) AddObject(ctx context.Context, addr string, size int64, typ string) error {
-	// Insert or ignore object; using INSERT OR IGNORE to handle duplicates idempotently
-	_, err := m.db.ExecContext(ctx, `
-		INSERT OR IGNORE INTO objs (addr, size, type) VALUES (?, ?, ?)
+	result, err := m.db.ExecContext(ctx, `
+		INSERT INTO objs (addr, size, type) VALUES (?, ?, ?)
+		ON CONFLICT(addr) DO NOTHING
 	`, addr, size, typ)
 	if err != nil {
-		return fmt.Errorf("inserting or ignoring addr into objs: %w", err)
+		return fmt.Errorf("inserting addr into objs: %w", err)
+	}
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("checking rows affected: %w", err)
+	}
+	if rowsAffected == 0 {
+		return store.ErrObjectExists
 	}
 	return nil
 }
