@@ -1,7 +1,6 @@
 package datastore
 
 import (
-	"bytes"
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
@@ -74,17 +73,14 @@ func (f *filesystemDatastore) Get(ctx context.Context, addr string) (io.ReadClos
 		return nil, store.ErrNotFound
 	}
 	filePath := filepath.Join(f.root, addr)
-	data, err := os.ReadFile(filePath)
+	file, err := os.Open(filePath)
 	if err != nil {
 		if errors.Is(err, os.ErrNotExist) {
 			return nil, store.ErrNotFound
 		}
 		return nil, err
 	}
-	if err := ctx.Err(); err != nil {
-		return nil, err
-	}
-	return io.NopCloser(bytes.NewReader(data)), nil
+	return file, nil
 }
 
 func (f *filesystemDatastore) Has(ctx context.Context, addr string) (bool, error) {
