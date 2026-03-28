@@ -26,7 +26,11 @@ var ServeCmd = &cobra.Command{
 
 		// Create stores
 		dataStore := datastore.NewFilesystemDatastore("./caos-store/caos-datastore")
-		metaStore, err := metastore.NewSQLiteMetaStore("./caos-store/caos-metastore/caos-objs.db")
+		metaStorePath := "./caos-store/caos-metastore/caos-objs.db"
+		if inMemory, _ := cmd.Flags().GetBool("in-memory"); inMemory {
+			metaStorePath = ":memory:"
+		}
+		metaStore, err := metastore.NewSQLiteMetaStore(metaStorePath)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -51,4 +55,8 @@ var ServeCmd = &cobra.Command{
 			log.Fatalf("Failed to stop server gracefully: %v", err)
 		}
 	},
+}
+
+func init() {
+	ServeCmd.Flags().Bool("in-memory", false, "Use in-memory stores")
 }

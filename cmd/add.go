@@ -38,6 +38,12 @@ var AddCmd = &cobra.Command{
 			log.Fatal(err)
 		}
 
-		log.Printf("Added %s with address %s", args[0], addr)
+		var displayName string
+		if len(args) == 0 || args[0] == "-" {
+			displayName = "stdin"
+		} else {
+			displayName = args[0]
+		}
+		log.Printf("Added %s with address %s", displayName, addr)
 	},
 }
