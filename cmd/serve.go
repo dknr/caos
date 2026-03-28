@@ -10,6 +10,7 @@ import (
 	"github.com/dknr/caos/internal/server"
 	"github.com/dknr/caos/internal/store/datastore"
 	"github.com/dknr/caos/internal/store/metastore"
+	"github.com/dknr/caos/store"
 	"github.com/spf13/cobra"
 )
 
@@ -25,8 +26,17 @@ var ServeCmd = &cobra.Command{
 		}
 
 		// Create stores
-		dataStore := datastore.NewFilesystemDatastore("./caos-store/caos-datastore")
-		metaStore, err := metastore.NewSQLiteMetaStore("./caos-store/caos-metastore/caos-objs.db")
+		var dataStore store.DataStore
+		if inMemory, _ := cmd.Flags().GetBool("in-memory"); inMemory {
+			dataStore = datastore.NewInMemoryDatastore()
+		} else {
+			dataStore = datastore.NewFilesystemDatastore("./caos-store/caos-datastore")
+		}
+		metaStorePath := "./caos-store/caos-metastore/caos-objs.db"
+		if inMemory, _ := cmd.Flags().GetBool("in-memory"); inMemory {
+			metaStorePath = ":memory:"
+		}
+		metaStore, err := metastore.NewSQLiteMetaStore(metaStorePath)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -51,4 +61,8 @@ var ServeCmd = &cobra.Command{
 			log.Fatalf("Failed to stop server gracefully: %v", err)
 		}
 	},
+}
+
+func init() {
+	ServeCmd.Flags().Bool("in-memory", false, "Use in-memory stores")
 }

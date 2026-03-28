@@ -1,11 +1,7 @@
 package datastore
 
 import (
-	"bytes"
 	"context"
-	"crypto/sha256"
-	"encoding/hex"
-	"io"
 
 	"github.com/dknr/caos/store"
 )
@@ -13,44 +9,40 @@ import (
 // NewInMemoryDatastore returns an in-memory implementation of store.DataStore.
 // This is primarily useful for testing.
 func NewInMemoryDatastore() store.DataStore {
-	return &inMemoryDatastore{
+	return NewDataStore(NewMemoryStorage())
+}
+
+// memoryStorage implements Storage using an in-memory map.
+type memoryStorage struct {
+	data map[string][]byte
+}
+
+// NewMemoryStorage returns an in-memory implementation of Storage.
+// This is primarily useful for testing.
+func NewMemoryStorage() Storage {
+	return &memoryStorage{
 		data: make(map[string][]byte),
 	}
 }
 
-type inMemoryDatastore struct {
-	data map[string][]byte
-}
-
-func (m *inMemoryDatastore) Put(ctx context.Context, r io.Reader) (string, int64, error) {
+func (m *memoryStorage) PutData(ctx context.Context, key string, data []byte) error {
 	if err := ctx.Err(); err != nil {
-		return "", 0, err
+		return err
 	}
-	// Read all data from the reader
-	data, err := io.ReadAll(r)
-	if err != nil {
-		return "", 0, err
-	}
-	if err := ctx.Err(); err != nil {
-		return "", 0, err
-	}
-	// Compute SHA-256 hash
-	hash := sha256.Sum256(data)
-	addr := hex.EncodeToString(hash[:])
 	// Store the data
-	m.data[addr] = data
+	m.data[key] = data
 	if err := ctx.Err(); err != nil {
-		return "", 0, err
+		return err
 	}
-	return addr, int64(len(data)), nil
+	return nil
 }
 
-func (m *inMemoryDatastore) Get(ctx context.Context, addr string) (io.ReadCloser, error) {
+func (m *memoryStorage) GetData(ctx context.Context, key string) ([]byte, error) {
 	if err := ctx.Err(); err != nil {
 		return nil, err
 	}
-	if data, ok := m.data[addr]; ok {
-		return io.NopCloser(bytes.NewReader(data)), nil
+	if data, ok := m.data[key]; ok {
+		return data, nil
 	}
 	if err := ctx.Err(); err != nil {
 		return nil, err
@@ -58,22 +50,22 @@ func (m *inMemoryDatastore) Get(ctx context.Context, addr string) (io.ReadCloser
 	return nil, store.ErrNotFound
 }
 
-func (m *inMemoryDatastore) Has(ctx context.Context, addr string) (bool, error) {
+func (m *memoryStorage) HasData(ctx context.Context, key string) (bool, error) {
 	if err := ctx.Err(); err != nil {
 		return false, err
 	}
-	_, ok := m.data[addr]
+	_, ok := m.data[key]
 	if err := ctx.Err(); err != nil {
 		return false, err
 	}
 	return ok, nil
 }
 
-func (m *inMemoryDatastore) Delete(ctx context.Context, addr string) error {
+func (m *memoryStorage) DeleteData(ctx context.Context, key string) error {
 	if err := ctx.Err(); err != nil {
 		return err
 	}
-	delete(m.data, addr)
+	delete(m.data, key)
 	if err := ctx.Err(); err != nil {
 		return err
 	}
