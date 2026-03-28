@@ -10,6 +10,7 @@ import (
 	"github.com/dknr/caos/internal/server"
 	"github.com/dknr/caos/internal/store/datastore"
 	"github.com/dknr/caos/internal/store/metastore"
+	"github.com/dknr/caos/store"
 	"github.com/spf13/cobra"
 )
 
@@ -25,7 +26,12 @@ var ServeCmd = &cobra.Command{
 		}
 
 		// Create stores
-		dataStore := datastore.NewFilesystemDatastore("./caos-store/caos-datastore")
+		var dataStore store.DataStore
+		if inMemory, _ := cmd.Flags().GetBool("in-memory"); inMemory {
+			dataStore = datastore.NewInMemoryDatastore()
+		} else {
+			dataStore = datastore.NewFilesystemDatastore("./caos-store/caos-datastore")
+		}
 		metaStorePath := "./caos-store/caos-metastore/caos-objs.db"
 		if inMemory, _ := cmd.Flags().GetBool("in-memory"); inMemory {
 			metaStorePath = ":memory:"
