@@ -14,7 +14,7 @@ export const serveCaos = (caos: Caos, opts: CaosOpts) => {
     console.log(`invalid host for serve command: ${hostUrl.hostname}`);
     Deno.exit(1);
   }
-  const hostPort = parseInt(hostUrl.port);
+  const hostPort = parseInt(hostUrl.port) || 0;
   if (hostPort < 1024) {
     console.log(`invalid port for serve command: ${hostPort}`)
     Deno.exit(1);
@@ -35,7 +35,7 @@ export const serveCaos = (caos: Caos, opts: CaosOpts) => {
   router.use("/data", data(caos));
   router.use("/path", path(caos));
   router.use("/tags", tags(caos));
-  router.use("/name", name())
+  router.use("/name", name(caos.name))
 
   app.use(async (ctx, next) => {
     try {

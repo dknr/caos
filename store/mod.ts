@@ -53,5 +53,9 @@ export const openCaos = (opts: CaosOpts): Caos => {
         meta.setTag(addr, tag, value);
       },
     },
+    name: {
+      get: meta.getName,
+      set: meta.setName,
+    },
   };
 };

@@ -1,5 +1,4 @@
 import {CmdFn} from "../cmd.ts";
-import {loadOpts} from "../opts.ts";
 import {buildClient} from "../client/mod.ts";
 import {CaosAddr} from "../types.ts";
 import {readAll} from "https://deno.land/std@0.192.0/streams/read_all.ts";
@@ -7,9 +6,8 @@ import {readerFromStreamReader} from "https://deno.land/std@0.192.0/streams/read
 
 const u8d = new TextDecoder();
 
-const pull: CmdFn = async (args) => {
+const pull: CmdFn = async (args, opts) => {
   // TODO: pass opts in to CmdFn
-  const opts = loadOpts();
   const client = buildClient({host: opts.host});
 
   if (args.length == 0) {

@@ -136,7 +136,6 @@ const path = (caos: Caos) => {
     if (ctx.request.url.pathname.endsWith('/')) {
       const indexName = `${ctx.params.name}/index.html`;
       const indexPath = paths.find((path) => path[1] === indexName);
-      console.log({indexName, indexPath});
       if (indexPath) {
         const indexData = await caos.data.get(indexPath[0]);
         const indexType = caos.tags.get(indexPath[0], 'type');

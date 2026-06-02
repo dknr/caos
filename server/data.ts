@@ -10,12 +10,6 @@ const data = (caos: Caos) => {
     ctx.response.body = result;
   });
 
-  router.post("/:file", async (ctx) => {
-    const data = ctx.request.body({type: "stream"}).value;
-    const result = await caos.data.add(data);
-    ctx.response.body = result;
-  });
-
   router.get("/:addr", async (ctx) => {
     const param = ctx.params.addr;
     if (param.length < 6) {

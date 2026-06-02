@@ -20,7 +20,7 @@ const opts = (args: string[]) => {
       const values = _opts.load();
       if (args.length > 1) {
 	for (const key of args.slice(1)) {
-	  console.log(values[key]);
+	  console.log(values[key as keyof typeof values]);
 	}
       } else {
         console.log(JSON.stringify(values, undefined, 2));

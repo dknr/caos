@@ -15,6 +15,7 @@ export type Caos = {
   addr: {
     all: (addr: CaosAddr) => CaosAddr[];
     has: (addr: CaosAddr) => boolean;
+    count: () => number;
   };
   data: {
     add: (data: CaosData) => Promise<CaosAddr>;
@@ -33,5 +34,9 @@ export type Caos = {
     del: (addr: CaosAddr, tag: CaosTagKey) => void;
     get: (addr: CaosAddr, tag: CaosTagKey) => CaosTagValue | undefined;
     set: (addr: CaosAddr, tag: CaosTagKey, value: CaosTagValue) => void;
+  };
+  name: {
+    get: (name: string) => string | undefined;
+    set: (name: string, addr: string) => void;
   };
 }

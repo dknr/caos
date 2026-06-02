@@ -1,13 +1,10 @@
 import {Router} from "https://deno.land/x/oak@v12.1.0/router.ts";
 
-const longestName = 'data/60ea108498aed632cb2c4c0bc73f757fb75ace85cabfa092d55df8a0fc3b586b'
-
-const name = () => {
+const name = (store: { get: (n: string) => string | undefined; set: (n: string, addr: string) => void }) => {
   const router = new Router();
-  const names = new Map<string, string>(); // TODO: persistence
 
   router.get('/:name', (ctx) => {
-    const addr = names.get(ctx.params.name);
+    const addr = store.get(ctx.params.name);
     if (!addr) {
       ctx.response.status = 404;
       return;
@@ -18,7 +15,7 @@ const name = () => {
     ctx.response.status = 302;
     ctx.response.headers.set(
       "location",
-      `/${addr}`  // TODO: robustify request root
+      `/${addr}`,
     );
   })
 
@@ -27,7 +24,7 @@ const name = () => {
     const body = ctx.request.body({ type: 'text' });
     const addr = await body.value;
 
-    names.set(name, addr);
+    store.set(name, addr);
 
     ctx.response.status = 200;
     ctx.response.body = `${name} ${addr}`;

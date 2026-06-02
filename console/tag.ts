@@ -24,7 +24,7 @@ const set = async (client: CaosClient, args: string[]) => {
   const tag = args[1];
   const value = args[2];
 
-  client.tags.set(addr, tag, value);
+  await client.tags.set(addr, tag, value);
 }
 
 const del = async (client: CaosClient, args: string[]) => {

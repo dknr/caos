@@ -1,4 +1,4 @@
-import { join } from "https://deno.land/std@0.193.0/path/mod.ts";
+import { join } from "https://deno.land/std@0.192.0/path/mod.ts";
 
 // const pid = Deno.pid;
 const home = Deno.env.get('HOME');

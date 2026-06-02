@@ -13,7 +13,7 @@ const name: CmdFn = async (args, opts) => {
   }
 
   if (args.length == 2) {
-    void client.name.set(args[0], args[1]);
+    await client.name.set(args[0], args[1]);
   }
 }
 

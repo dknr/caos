@@ -4,6 +4,8 @@ import {DB} from 'https://deno.land/x/sqlite@v3.9.1/mod.ts';
 import {CaosAddr, CaosTagKey} from "../types.ts";
 import { CaosOpts } from "../opts.ts";
 
+const ADDR_REGEX = /^[0-9a-fA-F]{64}$/;
+
 const prepareCaosMetaDb = (db: DB) => {
 
   db.execute(`
@@ -24,6 +26,14 @@ create table if not exists tags (
     references objs (addr)
     on delete cascade
     on update cascade
+);
+`);
+
+  db.execute(`
+create table if not exists names (
+  name text primary key,
+  addr text not null
+    on conflict replace
 );
 `);
 
@@ -54,14 +64,22 @@ export const openCaosMeta = (opts: CaosOpts) => {
   prepareCaosMetaDb(db);
 
   return {
-    addAddr: (addr: CaosAddr) => db.query(
-      `insert into objs (addr) values (?)`,
-      [addr]
-    ),
+    addAddr: (addr: CaosAddr) => {
+      if (!ADDR_REGEX.test(addr)) {
+        throw new Error(`invalid address format: ${addr}`);
+      }
+      db.query(
+        `insert into objs (addr) values (?)`,
+        [addr]
+      );
+    },
 
-    countAddrs: () => db.query<[number]>(
-      `select count(addr) from objs`
-    ).map(([count]) => count),
+    countAddrs: () => {
+      const result = db.query<[number]>(
+        `select count(addr) from objs`
+      ).map(([count]) => count);
+      return result[0] ?? 0;
+    },
 
     getAddrs: (partial: CaosAddr) => db.query<[string]>(
       `select addr from objs where addr like ?`,
@@ -96,5 +114,15 @@ export const openCaosMeta = (opts: CaosOpts) => {
       `delete from tags where addr = ? and tag = ?`,
       [addr, tag],
     ),
+
+    setName: (name: string, addr: CaosAddr) => db.query(
+      `insert into names (name, addr) values (?,?)`,
+      [name, addr],
+    ),
+
+    getName: (name: string) => db.query<[string]>(
+      `select addr from names where name = ?`,
+      [name]
+    ).map((row) => row[0])[0],
   }
 }

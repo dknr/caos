@@ -27,7 +27,7 @@ export const openCaosData = (config: CaosOpts) => {
         .pipeTo(tempFile.writable);
       
       const addr = hasher.digest();
-      const type = typer.getType();
+      const type = await typer.getType();
       const size = sizer.size;
 
       await Deno.copyFile(tempName, nameFile(addr))
@@ -52,7 +52,7 @@ export const openCaosData = (config: CaosOpts) => {
       .catch(() => undefined),
     has: (addr: CaosAddr) =>
       Deno.stat(nameFile(addr))
-      .then((stat) => !!stat)   // BUG: questionable assertion
+      .then(() => true)
       .catch(() => false),
   }
 }
