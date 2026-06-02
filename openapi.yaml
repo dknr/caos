@@ -1,0 +1,373 @@
+openapi: 3.0.3
+info:
+  title: Caos — Content-Addressed Object Store
+  description: |
+    Caos is a content-addressed object store. Objects are stored and retrieved
+    by their SHA-256 hash (the "address"). Objects can be tagged with
+    key/value metadata, aliased with human-readable names, and bundled into
+    directory-like "paths" for HTTP serving.
+  version: 0.1.0
+servers:
+  - url: http://localhost:31923
+    description: Default local server
+
+paths:
+  /:
+    get:
+      summary: Root redirect
+      description: Redirects to the configured home path (e.g. /data/d10b49b4).
+      responses:
+        "302":
+          description: Redirect to home path
+          headers:
+            location:
+              schema:
+                type: string
+              description: The configured home path
+
+  /addr/{addr}:
+    get:
+      summary: Resolve address(es)
+      description: |
+        Given a partial or full SHA-256 address, return all matching full
+        addresses. An exact match returns 200 with a single-element array. A
+        partial match may return multiple results (300). No match returns 404.
+      parameters:
+        - name: addr
+          in: path
+          required: true
+          schema:
+            type: string
+            minLength: 6
+          description: Full or partial SHA-256 hex string (min 6 chars)
+          example: d10b49b4
+      responses:
+        "200":
+          description: Exact match — one address found
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: string
+                  pattern: ^[a-f0-9]{64}$
+                example:
+                  - d10b49b4c2e0b8e7c8a0c1d2e3f4a5b6c7d8e9f0a1b2c3d4e5f6a7b8c9d0e1f
+        "300":
+          description: Multiple matches — partial address resolved to more than one full address
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: string
+                  pattern: ^[a-f0-9]{64}$
+        "404":
+          description: No matching addresses found
+
+  /data:
+    post:
+      summary: Add data
+      description: |
+        Upload raw data (stream) to the store. Returns the content-addressed
+        SHA-256 hash of the data as plain text.
+      requestBody:
+        required: true
+        content:
+          application/octet-stream:
+            schema:
+              type: string
+              format: binary
+      responses:
+        "200":
+          description: Data stored successfully
+          content:
+            text/plain:
+              schema:
+                type: string
+                pattern: ^[a-f0-9]{64}$
+              description: The SHA-256 hash of the stored data
+
+  /data/{addr}:
+    get:
+      summary: Get data by address
+      description: |
+        Retrieve stored data by its full or partial address. If the address
+        is partial and resolves to multiple objects, returns 300 with the
+        matching addresses as JSON. Sets Content-Type based on the object's
+        `type` tag, defaulting to application/octet-stream.
+      parameters:
+        - name: addr
+          in: path
+          required: true
+          schema:
+            type: string
+            minLength: 6
+          description: Full or partial SHA-256 hex string (min 6 chars)
+      responses:
+        "200":
+          description: Data retrieved successfully
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+            application/json:
+              schema:
+                type: string
+        "300":
+          description: Multiple matches — partial address resolved ambiguously
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: string
+                  pattern: ^[a-f0-9]{64}$
+        "404":
+          description: Address not found or no data
+
+  /tags/{addr}:
+    get:
+      summary: Get all tags for an address
+      parameters:
+        - name: addr
+          in: path
+          required: true
+          schema:
+            type: string
+            minLength: 64
+          description: Full SHA-256 address
+      responses:
+        "200":
+          description: Tags retrieved
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties:
+                  type: string
+                description: Key-value map of tags for the address
+                example:
+                  type: text/plain
+                  size: "128"
+
+  /tags/{addr}/{tag}:
+    get:
+      summary: Get a single tag value
+      parameters:
+        - name: addr
+          in: path
+          required: true
+          schema:
+            type: string
+            minLength: 64
+          description: Full SHA-256 address
+        - name: tag
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Tag key name
+      responses:
+        "200":
+          description: Tag value returned as plain text
+          content:
+            text/plain:
+              schema:
+                type: string
+        "404":
+          description: Tag not found for this address
+
+    put:
+      summary: Set a tag value
+      description: |
+        Sets a tag key/value on an object. The address must already exist
+        in the store. Body is plain text.
+      parameters:
+        - name: addr
+          in: path
+          required: true
+          schema:
+            type: string
+            minLength: 64
+          description: Full SHA-256 address
+        - name: tag
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Tag key name
+      requestBody:
+        required: true
+        content:
+          text/plain:
+            schema:
+              type: string
+      responses:
+        "204":
+          description: Tag set successfully (no body)
+        "400":
+          description: Empty request body
+        "404":
+          description: Address does not exist in store
+
+    delete:
+      summary: Delete a tag
+      parameters:
+        - name: addr
+          in: path
+          required: true
+          schema:
+            type: string
+            minLength: 64
+          description: Full SHA-256 address
+        - name: tag
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Tag key name
+      responses:
+        "204":
+          description: Tag deleted successfully (no body)
+
+  /name/{name}:
+    get:
+      summary: Resolve a named alias to its address
+      description: |
+        Returns the address for a human-readable name. Also sets a 302
+        redirect to /data/{addr}.
+      parameters:
+        - name: name
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Human-readable alias name
+      responses:
+        "200":
+          description: Name resolved — address returned as plain text
+          content:
+            text/plain:
+              schema:
+                type: string
+                pattern: ^[a-f0-9]{64}$
+        "302":
+          description: Redirect to /data/{addr}
+          headers:
+            location:
+              schema:
+                type: string
+        "404":
+          description: Name not found
+
+    post:
+      summary: Set a named alias
+      description: |
+        Assigns a human-readable name to an address. Body is the address as
+        plain text. Returns "{name} {addr}".
+      parameters:
+        - name: name
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Human-readable alias name
+      requestBody:
+        required: true
+        content:
+          text/plain:
+            schema:
+              type: string
+              pattern: ^[a-f0-9]{64}$
+            description: The SHA-256 address to associate with this name
+      responses:
+        "200":
+          description: Name set successfully
+          content:
+            text/plain:
+              schema:
+                type: string
+              description: "{name} {addr}"
+
+  /path/{addr}:
+    get:
+      summary: Serve a path object (autoindex or index.html)
+      description: |
+        Serves a "caos/path" type object. If the URL lacks a trailing slash,
+        redirects (301) with trailing slash. If the path contains an
+        index.html entry with type text/html, serves that file. Otherwise
+        returns an HTML autoindex page listing the directory contents.
+      parameters:
+        - name: addr
+          in: path
+          required: true
+          schema:
+            type: string
+            minLength: 64
+          description: Full SHA-256 address of the path object
+      responses:
+        "200":
+          description: HTML page (autoindex or index.html content)
+          content:
+            text/html:
+              schema:
+                type: string
+        "301":
+          description: Redirect to add trailing slash
+          headers:
+            location:
+              schema:
+                type: string
+        "300":
+          description: Multiple matches for the address
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: string
+                  pattern: ^[a-f0-9]{64}$
+        "404":
+          description: Address not found, not a path object, or index.html without text/html type
+
+  /path/{addr}/{name}:
+    get:
+      summary: Serve a specific file from a path
+      description: |
+        Resolves a filename within a path object to its content address and
+        serves the raw data with the appropriate content type.
+      parameters:
+        - name: addr
+          in: path
+          required: true
+          schema:
+            type: string
+            minLength: 64
+          description: Full SHA-256 address of the path object
+        - name: name
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Filename within the path
+      responses:
+        "200":
+          description: File content served
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+        "300":
+          description: Multiple matches for the file's address
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: string
+                  pattern: ^[a-f0-9]{64}$
+        "404":
+          description: File name not found in path, or address not found
