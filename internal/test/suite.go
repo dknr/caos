@@ -50,6 +50,15 @@ func testDataCases(t *testing.T, c *SuiteClient) {
 		}
 		t.Logf("Uploaded: %s", addr)
 
+		// Verify size tag is stored
+		tags, err := c.GetTags(addr)
+		if err != nil {
+			t.Fatalf("GetTags failed: %v", err)
+		}
+		if tags["size"] == "" {
+			t.Errorf("Expected size tag to be set, got tags=%v", tags)
+		}
+
 		// Retrieve by full address
 		rc, _, status, err := c.GetDataWithStatus(addr)
 		if err != nil {
@@ -75,6 +84,15 @@ func testDataCases(t *testing.T, c *SuiteClient) {
 			t.Fatalf("Expected 64-char hash, got %q", addr)
 		}
 		t.Logf("Uploaded binary: %s", addr)
+
+		// Verify size tag is stored
+		tags, err := c.GetTags(addr)
+		if err != nil {
+			t.Fatalf("GetTags failed: %v", err)
+		}
+		if tags["size"] == "" {
+			t.Errorf("Expected size tag to be set, got tags=%v", tags)
+		}
 
 		// Verify content
 		rc, _, _, err := c.GetDataWithStatus(addr)

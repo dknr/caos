@@ -8,6 +8,7 @@ import (
 	"log/slog"
 	"net/http"
 	"os"
+	"strconv"
 	"strings"
 
 	"caos.one/caos/server/store"
@@ -72,7 +73,11 @@ func (a *apiImpl) PostData(w http.ResponseWriter, r *http.Request) {
 	// Reconstruct the full stream: sniffed prefix + remaining data
 	fullReader := io.MultiReader(bytes.NewReader(buf), limited)
 
-	addr, err := a.store.Data.AddData(fullReader)
+	// Count bytes for the size tag
+	var written int64
+	countingReader := io.TeeReader(fullReader, &countWriter{fn: func(n int) { written += int64(n) }})
+
+	addr, err := a.store.Data.AddData(countingReader)
 	if err != nil {
 		slog.Error("PostData", "error", err)
 		http.Error(w, `{"error":"failed to store data"}`, http.StatusInternalServerError)
@@ -88,10 +93,23 @@ func (a *apiImpl) PostData(w http.ResponseWriter, r *http.Request) {
 		a.store.Meta.SetTag([]byte(addr), []byte("type"), []byte(contentType))
 	}
 
-	slog.Info("Data stored", "addr", addr, "type", contentType)
+	// Store size tag
+	a.store.Meta.SetTag([]byte(addr), []byte("size"), []byte(strconv.FormatInt(written, 10)))
+
+	slog.Info("Data stored", "addr", addr, "type", contentType, "size", written)
 	w.Header().Set("Content-Type", "text/plain")
 	w.WriteHeader(http.StatusOK)
 	w.Write([]byte(addr))
+}
+
+// countWriter is a write-only sink that invokes a callback after each write.
+type countWriter struct {
+	fn func(n int)
+}
+
+func (cw *countWriter) Write(p []byte) (int, error) {
+	cw.fn(len(p))
+	return len(p), nil
 }
 
 // GetDataAddr implements GET /data/{addr} — data retrieval.
