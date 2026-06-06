@@ -15,7 +15,8 @@ import (
 
 // apiImpl implements ServerInterface with a Store backend.
 type apiImpl struct {
-	store *store.Store
+	store   *store.Store
+	homePath string
 }
 
 // compile-time check
@@ -23,7 +24,7 @@ var _ ServerInterface = (*apiImpl)(nil)
 
 // Get implements GET / — root redirect.
 func (a *apiImpl) Get(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Location", "/data/d10b49b4")
+	w.Header().Set("Location", a.homePath)
 	w.WriteHeader(http.StatusFound)
 }
 

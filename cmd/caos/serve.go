@@ -14,6 +14,7 @@ func init() {
 	rootCmd.AddCommand(serveCmd)
 	serveCmd.Flags().IntP("port", "p", 31923, "Port to listen on")
 	serveCmd.Flags().StringP("root", "r", "", "Root directory for meta and data stores (default: /tmp/caos-<pid>)")
+	serveCmd.Flags().StringP("home", "H", "/data/d10b49b4", "Redirect target for GET /")
 }
 
 var serveCmd = &cobra.Command{
@@ -32,7 +33,8 @@ var serveCmd = &cobra.Command{
 		}
 
 		port, _ := cmd.Flags().GetInt("port")
-		srv := server.NewWithPort(root, port)
+		homePath, _ := cmd.Flags().GetString("home")
+		srv := server.NewWithPort(root, port, homePath)
 
 		if err := srv.Serve(); err != nil && err != http.ErrServerClosed {
 			slog.Error("Server failed", "error", err)

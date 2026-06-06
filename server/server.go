@@ -21,14 +21,15 @@ type Server struct {
 }
 
 // NewWithPort creates a caos server on the given port with a store rooted at rootDir.
-func NewWithPort(rootDir string, port int) *Server {
+// homePath is the redirect target for GET / (default "/data/d10b49b4").
+func NewWithPort(rootDir string, port int, homePath string) *Server {
 	s, err := store.Open(rootDir)
 	if err != nil {
 		slog.Error("Failed to open store", "error", err)
 		os.Exit(1)
 	}
 
-	apiImpl := &apiImpl{store: s}
+	apiImpl := &apiImpl{store: s, homePath: homePath}
 	mux := http.NewServeMux()
 	HandlerWithOptions(apiImpl, StdHTTPServerOptions{BaseRouter: mux})
 
