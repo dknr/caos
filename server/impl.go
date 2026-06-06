@@ -321,6 +321,10 @@ func (a *apiImpl) DeleteTagsAddrTag(w http.ResponseWriter, r *http.Request, addr
 		http.Error(w, `{"error":"address must be a full 64-char SHA-256"}`, http.StatusBadRequest)
 		return
 	}
+	if tag == "type" || tag == "size" {
+		http.Error(w, `{"error":"cannot delete inherent tag: `+tag+`"}`, http.StatusBadRequest)
+		return
+	}
 	if err := a.store.Meta.DelTag([]byte(addr), []byte(tag)); err != nil {
 		slog.Error("DeleteTagsAddrTag", "error", err)
 		http.Error(w, `{"error":"internal error"}`, http.StatusInternalServerError)

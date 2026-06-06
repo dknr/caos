@@ -234,11 +234,15 @@ func testTagCases(t *testing.T, c *SuiteClient) {
 	})
 
 	t.Run("DeleteTag", func(t *testing.T) {
-		if err := c.DelTag(addr, "type"); err != nil {
+		// First set a custom tag (not the protected 'type' tag)
+		if err := c.SetTag(addr, "customtag", "somevalue"); err != nil {
+			t.Fatalf("SetTag failed: %v", err)
+		}
+		if err := c.DelTag(addr, "customtag"); err != nil {
 			t.Fatalf("DelTag failed: %v", err)
 		}
 		// Verify it's gone
-		_, err := c.GetTag(addr, "type")
+		_, err := c.GetTag(addr, "customtag")
 		if err == nil || !strings.Contains(err.Error(), "404") {
 			t.Fatalf("Expected 404 after delete, got %v", err)
 		}
@@ -251,7 +255,7 @@ func testTagCases(t *testing.T, c *SuiteClient) {
 	})
 
 	t.Run("DeleteTagNonExistentAddr", func(t *testing.T) {
-		if err := c.DelTag("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", "type"); err != nil {
+		if err := c.DelTag("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", "customtag"); err != nil {
 			t.Fatalf("DelTag on missing addr failed: %v", err)
 		}
 	})
