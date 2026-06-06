@@ -300,7 +300,17 @@ func (c *Client) PullAddr(pathAddr, outDir string) error {
 			continue
 		}
 		fileAddr := parts[0]
-		filePath := filepath.Join(outDir, parts[1])
+		fileName := parts[1]
+
+		// Reject path traversal and absolute paths
+		if strings.HasPrefix(fileName, "/") {
+			return fmt.Errorf("refusing to pull absolute path: %s", fileName)
+		}
+		if strings.Contains(fileName, "..") {
+			return fmt.Errorf("refusing to pull path with traversal: %s", fileName)
+		}
+
+		filePath := filepath.Join(outDir, fileName)
 
 		// Create parent directory
 		if err := os.MkdirAll(filepath.Dir(filePath), 0755); err != nil {

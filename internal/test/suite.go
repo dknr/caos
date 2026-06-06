@@ -592,4 +592,44 @@ func testPushPullCases(t *testing.T, c *SuiteClient) {
 			t.Fatalf("Expected error for non-path object, got nil")
 		}
 	})
+
+	t.Run("PullAbsolutePath", func(t *testing.T) {
+		// Create a path object with an absolute path entry
+		fileAddr, err := c.AddData(strings.NewReader("file content"))
+		if err != nil {
+			t.Fatalf("AddData failed: %v", err)
+		}
+		pathContent := fileAddr + " /etc/evil\n"
+		pathAddr, err := c.AddData(strings.NewReader(pathContent))
+		if err != nil {
+			t.Fatalf("AddData failed: %v", err)
+		}
+		if err := c.SetTag(pathAddr, "type", "caos/path"); err != nil {
+			t.Fatalf("SetTag failed: %v", err)
+		}
+		err = c.PullAddr(pathAddr, "/tmp")
+		if err == nil || !strings.Contains(err.Error(), "absolute path") {
+			t.Fatalf("Expected error rejecting absolute path, got %v", err)
+		}
+	})
+
+	t.Run("PullPathTraversal", func(t *testing.T) {
+		// Create a path object with a relative path traversal entry
+		fileAddr, err := c.AddData(strings.NewReader("file content"))
+		if err != nil {
+			t.Fatalf("AddData failed: %v", err)
+		}
+		pathContent := fileAddr + " ../../etc/evil\n"
+		pathAddr, err := c.AddData(strings.NewReader(pathContent))
+		if err != nil {
+			t.Fatalf("AddData failed: %v", err)
+		}
+		if err := c.SetTag(pathAddr, "type", "caos/path"); err != nil {
+			t.Fatalf("SetTag failed: %v", err)
+		}
+		err = c.PullAddr(pathAddr, "/tmp")
+		if err == nil || !strings.Contains(err.Error(), "traversal") {
+			t.Fatalf("Expected error rejecting path traversal, got %v", err)
+		}
+	})
 }
