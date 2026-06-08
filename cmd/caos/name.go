@@ -5,14 +5,11 @@ import (
 	"log/slog"
 	"os"
 
-	"caos.one/caos/client"
-
 	"github.com/spf13/cobra"
 )
 
 func init() {
 	rootCmd.AddCommand(nameCmd)
-	nameCmd.Flags().StringP("server", "s", "http://localhost:31923", "Caos server URL")
 }
 
 var nameCmd = &cobra.Command{
@@ -20,8 +17,7 @@ var nameCmd = &cobra.Command{
 	Short: "Get or set a name alias",
 	Args:  cobra.RangeArgs(1, 2),
 	Run: func(cmd *cobra.Command, args []string) {
-		server, _ := cmd.Flags().GetString("server")
-		c := client.New(server)
+		c := newClient()
 
 		if len(args) == 1 {
 			// Get name

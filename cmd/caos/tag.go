@@ -6,14 +6,11 @@ import (
 	"os"
 	"strings"
 
-	"caos.one/caos/client"
-
 	"github.com/spf13/cobra"
 )
 
 func init() {
 	rootCmd.AddCommand(tagCmd)
-	tagCmd.Flags().StringP("server", "s", "http://localhost:31923", "Caos server URL")
 	tagCmd.Flags().BoolP("delete", "d", false, "Delete the tag")
 }
 
@@ -22,8 +19,7 @@ var tagCmd = &cobra.Command{
 	Short: "Get, set, or delete a tag on an address",
 	Args:  cobra.RangeArgs(2, 3),
 	Run: func(cmd *cobra.Command, args []string) {
-		server, _ := cmd.Flags().GetString("server")
-		c := client.New(server)
+		c := newClient()
 		del, _ := cmd.Flags().GetBool("delete")
 
 		addr := args[0]

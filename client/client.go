@@ -28,6 +28,11 @@ func New(serverURL string) *Client {
 	}
 }
 
+// Base returns the server URL this client is configured to use.
+func (c *Client) Base() string {
+	return c.base
+}
+
 // SetAPIKey sets the API key for write operations.
 func (c *Client) SetAPIKey(key string) {
 	c.apiKey = key

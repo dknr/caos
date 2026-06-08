@@ -8,6 +8,7 @@ import (
 	"caos.one/caos/server"
 
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 )
 
 func init() {
@@ -15,7 +16,6 @@ func init() {
 	serveCmd.Flags().IntP("port", "p", 31923, "Port to listen on")
 	serveCmd.Flags().StringP("root", "r", "", "Root directory for meta and data stores (default: /tmp/caos-<pid>)")
 	serveCmd.Flags().StringP("home", "H", "/data/d10b49b4", "Redirect target for GET /")
-	serveCmd.Flags().StringP("api-key", "k", "", "API key for write endpoint protection (empty = writes blocked)")
 }
 
 var serveCmd = &cobra.Command{
@@ -35,7 +35,7 @@ var serveCmd = &cobra.Command{
 
 		port, _ := cmd.Flags().GetInt("port")
 		homePath, _ := cmd.Flags().GetString("home")
-		apiKey, _ := cmd.Flags().GetString("api-key")
+		apiKey := viper.GetString("api-key")
 		srv := server.NewWithPort(root, port, homePath, apiKey)
 
 		if err := srv.Serve(); err != nil && err != http.ErrServerClosed {

@@ -5,13 +5,10 @@ import (
 	"log/slog"
 	"os"
 
-	"caos.one/caos/client"
-
 	"github.com/spf13/cobra"
 )
 
 func init() {
-	pushCmd.Flags().StringP("server", "s", "http://localhost:31923", "Caos server URL")
 	rootCmd.AddCommand(pushCmd)
 }
 
@@ -20,8 +17,7 @@ var pushCmd = &cobra.Command{
 	Short: "Upload a directory tree as a path object",
 	Args:  cobra.MinimumNArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
-		server, _ := cmd.Flags().GetString("server")
-		c := client.New(server)
+		c := newClient()
 
 		for _, arg := range args {
 			pathAddr, count, err := c.PushDir(arg)
@@ -29,7 +25,7 @@ var pushCmd = &cobra.Command{
 				slog.Error("Push failed", "path", arg, "error", err)
 				os.Exit(1)
 			}
-			fmt.Printf("%s/path/%s (%d files)\n", server, pathAddr[:8], count)
+			fmt.Printf("%s/path/%s (%d files)\n", c.Base(), pathAddr[:8], count)
 		}
 	},
 }

@@ -5,14 +5,11 @@ import (
 	"log/slog"
 	"os"
 
-	"caos.one/caos/client"
-
 	"github.com/spf13/cobra"
 )
 
 func init() {
 	rootCmd.AddCommand(getCmd)
-	getCmd.Flags().StringP("server", "s", "http://localhost:31923", "Caos server URL")
 	getCmd.Flags().StringP("output", "o", "", "Output file (default: stdout)")
 }
 
@@ -21,8 +18,7 @@ var getCmd = &cobra.Command{
 	Short: "Download data by address",
 	Args:  cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
-		server, _ := cmd.Flags().GetString("server")
-		c := client.New(server)
+		c := newClient()
 
 		rc, _, err := c.GetData(args[0])
 		if err != nil {

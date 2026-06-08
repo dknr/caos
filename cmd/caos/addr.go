@@ -5,14 +5,11 @@ import (
 	"log/slog"
 	"os"
 
-	"caos.one/caos/client"
-
 	"github.com/spf13/cobra"
 )
 
 func init() {
 	rootCmd.AddCommand(addrCmd)
-	addrCmd.Flags().StringP("server", "s", "http://localhost:31923", "Caos server URL")
 }
 
 var addrCmd = &cobra.Command{
@@ -20,8 +17,7 @@ var addrCmd = &cobra.Command{
 	Short: "Resolve a partial address to full address(es)",
 	Args:  cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
-		server, _ := cmd.Flags().GetString("server")
-		c := client.New(server)
+		c := newClient()
 
 		addrs, err := c.ResolveAddr(args[0])
 		if err != nil {
