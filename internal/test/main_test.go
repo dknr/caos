@@ -12,6 +12,7 @@ import (
 )
 
 var serverPort int
+const testAPIKey = "test-api-key-123"
 
 // TestMain manages the server lifecycle for integration tests.
 func TestMain(m *testing.M) {
@@ -28,10 +29,11 @@ func TestMain(m *testing.M) {
 		os.Exit(1)
 	}
 
-	// Start the server
+	// Start the server with API key protection
 	serverCmd := exec.Command("/tmp/caos-test-bin", "serve",
 		"--port", strconv.Itoa(port),
-		"--root", root)
+		"--root", root,
+		"--api-key", testAPIKey)
 	serverCmd.Stdout = os.Stdout
 	serverCmd.Stderr = os.Stderr
 	if err := serverCmd.Start(); err != nil {
@@ -82,7 +84,7 @@ func pickFreePort() int {
 // TestCaosSuite runs the full integration test suite.
 func TestCaosSuite(t *testing.T) {
 	base := fmt.Sprintf("http://localhost:%d", serverPort)
-	c := NewSuiteClient(base)
+	c := NewSuiteClient(base, testAPIKey)
 
 	RunSuite(t, c)
 }

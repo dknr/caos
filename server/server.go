@@ -18,11 +18,13 @@ type Server struct {
 	mux     http.Handler
 	httpSrv *http.Server
 	store   *store.Store
+	apiKey  string
 }
 
 // NewWithPort creates a caos server on the given port with a store rooted at rootDir.
 // homePath is the redirect target for GET / (default "/data/d10b49b4").
-func NewWithPort(rootDir string, port int, homePath string) *Server {
+// apiKey is the optional API key for write protection (empty = writes blocked).
+func NewWithPort(rootDir string, port int, homePath string, apiKey string) *Server {
 	s, err := store.Open(rootDir)
 	if err != nil {
 		slog.Error("Failed to open store", "error", err)
@@ -31,7 +33,10 @@ func NewWithPort(rootDir string, port int, homePath string) *Server {
 
 	apiImpl := &apiImpl{store: s, homePath: homePath}
 	mux := http.NewServeMux()
-	HandlerWithOptions(apiImpl, StdHTTPServerOptions{BaseRouter: mux})
+	HandlerWithOptions(apiImpl, StdHTTPServerOptions{
+		BaseRouter: mux,
+		Middlewares: []MiddlewareFunc{APIKeyAuth(apiKey)},
+	})
 
 	// Register trailing-slash variant for path autoindex.
 	// The generated route GET /path/{addr} redirects to add /, and
@@ -41,8 +46,9 @@ func NewWithPort(rootDir string, port int, homePath string) *Server {
 	})
 
 	srv := &Server{
-		mux:   mux,
-		store: s,
+		mux:    mux,
+		store:  s,
+		apiKey: apiKey,
 	}
 
 	srv.httpSrv = &http.Server{

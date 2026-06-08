@@ -15,8 +15,9 @@ import (
 
 // Client connects to a caos server.
 type Client struct {
-	base string
-	hc   *http.Client
+	base   string
+	hc     *http.Client
+	apiKey string
 }
 
 // New creates a new client targeting the given server URL.
@@ -27,9 +28,27 @@ func New(serverURL string) *Client {
 	}
 }
 
+// SetAPIKey sets the API key for write operations.
+func (c *Client) SetAPIKey(key string) {
+	c.apiKey = key
+}
+
+// authHeader sets the X-API-Key header if configured.
+func (c *Client) authHeader(req *http.Request) {
+	if c.apiKey != "" {
+		req.Header.Set("X-API-Key", c.apiKey)
+	}
+}
+
 // AddData uploads data from r and returns the SHA-256 address.
 func (c *Client) AddData(r io.Reader) (string, error) {
-	resp, err := c.hc.Post(c.base+"/data", "application/octet-stream", r)
+	req, err := http.NewRequest(http.MethodPost, c.base+"/data", r)
+	if err != nil {
+		return "", err
+	}
+	req.Header.Set("Content-Type", "application/octet-stream")
+	c.authHeader(req)
+	resp, err := c.hc.Do(req)
 	if err != nil {
 		return "", err
 	}
@@ -119,6 +138,7 @@ func (c *Client) SetTag(addr, tag, value string) error {
 	if err != nil {
 		return err
 	}
+	c.authHeader(req)
 	resp, err := c.hc.Do(req)
 	if err != nil {
 		return err
@@ -137,6 +157,7 @@ func (c *Client) DelTag(addr, tag string) error {
 	if err != nil {
 		return err
 	}
+	c.authHeader(req)
 	resp, err := c.hc.Do(req)
 	if err != nil {
 		return err
@@ -173,6 +194,7 @@ func (c *Client) SetName(name, addr string) error {
 	if err != nil {
 		return err
 	}
+	c.authHeader(req)
 	resp, err := c.hc.Do(req)
 	if err != nil {
 		return err

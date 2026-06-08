@@ -14,18 +14,186 @@ import (
 // RunSuite runs the full integration test suite.
 // Tests run in dependency order:
 //
+//	Phase 0: Auth             → verifies API key protection (before any data)
 //	Phase 1: Data upload      → establishes known addresses
 //	Phase 2: Address resolve  → uses addresses from phase 1
 //	Phase 3: Tags             → uses addresses from phase 1
 //	Phase 4: Names            → uses addresses from phase 1
 //	Phase 5: Path             → uses data+tags from phases 1-3
+//	Phase 6: PushPull         → uses data+tags from phases 1-3
 func RunSuite(t *testing.T, client *SuiteClient) {
+	t.Run("Phase0_Auth", func(t *testing.T) { testAuthCases(t, client) })
 	t.Run("Phase1_Data", func(t *testing.T) { testDataCases(t, client) })
 	t.Run("Phase2_Addr", func(t *testing.T) { testAddrCases(t, client) })
 	t.Run("Phase3_Tags", func(t *testing.T) { testTagCases(t, client) })
 	t.Run("Phase4_Names", func(t *testing.T) { testNameCases(t, client) })
 	t.Run("Phase5_Path", func(t *testing.T) { testPathCases(t, client) })
 	t.Run("Phase6_PushPull", func(t *testing.T) { testPushPullCases(t, client) })
+}
+
+// testAuthCases tests API key authentication for write endpoints.
+func testAuthCases(t *testing.T, c *SuiteClient) {
+	t.Helper()
+
+	// First upload data (with auth) to have addresses for read/write tests
+	content := "auth test object"
+	addr, err := c.AddData(strings.NewReader(content))
+	if err != nil {
+		t.Fatalf("Setup upload failed: %v", err)
+	}
+
+	t.Run("ReadOpsWithoutAuth", func(t *testing.T) {
+		// GET /data/{addr} should work without auth
+		status, err := c.ReadRequest("GET", "/data/"+addr)
+		if err != nil {
+			t.Fatalf("GET /data failed: %v", err)
+		}
+		if status != 200 {
+			t.Fatalf("Expected 200 for GET /data without auth, got %d", status)
+		}
+
+		// GET /addr/{addr} should work without auth
+		status, err = c.ReadRequest("GET", "/addr/"+addr)
+		if err != nil {
+			t.Fatalf("GET /addr failed: %v", err)
+		}
+		if status != 200 {
+			t.Fatalf("Expected 200 for GET /addr without auth, got %d", status)
+		}
+
+		// GET /tags/{addr} should work without auth
+		status, err = c.ReadRequest("GET", "/tags/"+addr)
+		if err != nil {
+			t.Fatalf("GET /tags failed: %v", err)
+		}
+		if status != 200 {
+			t.Fatalf("Expected 200 for GET /tags without auth, got %d", status)
+		}
+
+		// GET /name/{name} should work without auth (name not set yet, expect 404 not 401)
+		status, err = c.ReadRequest("GET", "/name/nonexistent")
+		if err != nil {
+			t.Fatalf("GET /name failed: %v", err)
+		}
+		if status == 401 {
+			t.Fatalf("Expected non-401 for GET /name without auth, got 401")
+		}
+	})
+
+	t.Run("PostDataWithoutAuth", func(t *testing.T) {
+		status, err := c.AddDataNoAuth(strings.NewReader("no auth data"))
+		if err != nil {
+			t.Fatalf("POST /data no auth failed: %v", err)
+		}
+		if status != 401 {
+			t.Fatalf("Expected 401 for POST /data without auth, got %d", status)
+		}
+	})
+
+	t.Run("PostDataWrongKey", func(t *testing.T) {
+		status, err := c.AddDataWithWrongKey(strings.NewReader("wrong key data"))
+		if err != nil {
+			t.Fatalf("POST /data wrong key failed: %v", err)
+		}
+		if status != 401 {
+			t.Fatalf("Expected 401 for POST /data with wrong key, got %d", status)
+		}
+	})
+
+	t.Run("PostDataWithCorrectKey", func(t *testing.T) {
+		// Verify the SuiteClient (which has the correct key) can still write
+		newAddr, err := c.AddData(strings.NewReader("correct key data"))
+		if err != nil {
+			t.Fatalf("POST /data with correct key failed: %v", err)
+		}
+		if len(newAddr) != 64 {
+			t.Fatalf("Expected 64-char hash, got %q", newAddr)
+		}
+	})
+
+	t.Run("PutTagWithoutAuth", func(t *testing.T) {
+		status, err := c.SetTagNoAuth(addr, "testtag", "testval")
+		if err != nil {
+			t.Fatalf("PUT /tags no auth failed: %v", err)
+		}
+		if status != 401 {
+			t.Fatalf("Expected 401 for PUT /tags without auth, got %d", status)
+		}
+	})
+
+	t.Run("PutTagWrongKey", func(t *testing.T) {
+		status, err := c.WriteRequestWrongKey("PUT", "/tags/"+addr+"/testtag", strings.NewReader("testval"))
+		if err != nil {
+			t.Fatalf("PUT /tags wrong key failed: %v", err)
+		}
+		if status != 401 {
+			t.Fatalf("Expected 401 for PUT /tags with wrong key, got %d", status)
+		}
+	})
+
+	t.Run("PutTagWithCorrectKey", func(t *testing.T) {
+		if err := c.SetTag(addr, "type", "text/plain"); err != nil {
+			t.Fatalf("PUT /tags with correct key failed: %v", err)
+		}
+	})
+
+	t.Run("DeleteTagWithoutAuth", func(t *testing.T) {
+		status, err := c.DelTagNoAuth(addr, "testtag")
+		if err != nil {
+			t.Fatalf("DELETE /tags no auth failed: %v", err)
+		}
+		if status != 401 {
+			t.Fatalf("Expected 401 for DELETE /tags without auth, got %d", status)
+		}
+	})
+
+	t.Run("DeleteTagWrongKey", func(t *testing.T) {
+		req, err := http.NewRequest("DELETE", c.base+"/tags/"+addr+"/testtag", nil)
+		if err != nil {
+			t.Fatalf("DELETE request failed: %v", err)
+		}
+		req.Header.Set("X-API-Key", "wrong-key")
+		resp, err := c.hc.Do(req)
+		if err != nil {
+			t.Fatalf("DELETE request failed: %v", err)
+		}
+		resp.Body.Close()
+		if resp.StatusCode != 401 {
+			t.Fatalf("Expected 401 for DELETE /tags with wrong key, got %d", resp.StatusCode)
+		}
+	})
+
+	t.Run("DeleteTagWithCorrectKey", func(t *testing.T) {
+		if err := c.DelTag(addr, "testtag"); err != nil {
+			t.Fatalf("DELETE /tags with correct key failed: %v", err)
+		}
+	})
+
+	t.Run("PostNameWithoutAuth", func(t *testing.T) {
+		status, err := c.SetNameNoAuth("myname", addr)
+		if err != nil {
+			t.Fatalf("POST /name no auth failed: %v", err)
+		}
+		if status != 401 {
+			t.Fatalf("Expected 401 for POST /name without auth, got %d", status)
+		}
+	})
+
+	t.Run("PostNameWrongKey", func(t *testing.T) {
+		status, err := c.WriteRequestWrongKey("POST", "/name/myname", strings.NewReader(addr))
+		if err != nil {
+			t.Fatalf("POST /name wrong key failed: %v", err)
+		}
+		if status != 401 {
+			t.Fatalf("Expected 401 for POST /name with wrong key, got %d", status)
+		}
+	})
+
+	t.Run("PostNameWithCorrectKey", func(t *testing.T) {
+		if err := c.SetName("myname", addr); err != nil {
+			t.Fatalf("POST /name with correct key failed: %v", err)
+		}
+	})
 }
 
 // testDataCases tests POST /data and GET /data/{addr}.

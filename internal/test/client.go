@@ -17,10 +17,12 @@ type SuiteClient struct {
 	base  string
 }
 
-// NewSuiteClient creates a test client.
-func NewSuiteClient(serverURL string) *SuiteClient {
+// NewSuiteClient creates a test client with the given API key set for write operations.
+func NewSuiteClient(serverURL string, apiKey string) *SuiteClient {
+	inner := client.New(serverURL)
+	inner.SetAPIKey(apiKey)
 	return &SuiteClient{
-		inner: client.New(serverURL),
+		inner: inner,
 		hc:    &http.Client{},
 		base:  strings.TrimRight(serverURL, "/"),
 	}
@@ -125,4 +127,147 @@ func (c *SuiteClient) PushDir(root string) (string, int, error) {
 // PullAddr delegates to the inner client.
 func (c *SuiteClient) PullAddr(pathAddr, outDir string) error {
 	return c.inner.PullAddr(pathAddr, outDir)
+}
+
+// --- Auth test helpers — make raw requests without API key ---
+
+func (c *SuiteClient) AddDataNoAuth(r io.Reader) (int, error) {
+	req, err := http.NewRequest(http.MethodPost, c.base+"/data", r)
+	if err != nil {
+		return 0, err
+	}
+	req.Header.Set("Content-Type", "application/octet-stream")
+	resp, err := c.hc.Do(req)
+	if err != nil {
+		return 0, err
+	}
+	defer resp.Body.Close()
+	return resp.StatusCode, nil
+}
+
+func (c *SuiteClient) SetTagNoAuth(addr, tag, value string) (int, error) {
+	req, err := http.NewRequest(http.MethodPut,
+		c.base+"/tags/"+addr+"/"+tag,
+		strings.NewReader(value))
+	if err != nil {
+		return 0, err
+	}
+	resp, err := c.hc.Do(req)
+	if err != nil {
+		return 0, err
+	}
+	defer resp.Body.Close()
+	return resp.StatusCode, nil
+}
+
+func (c *SuiteClient) DelTagNoAuth(addr, tag string) (int, error) {
+	req, err := http.NewRequest(http.MethodDelete,
+		c.base+"/tags/"+addr+"/"+tag, nil)
+	if err != nil {
+		return 0, err
+	}
+	resp, err := c.hc.Do(req)
+	if err != nil {
+		return 0, err
+	}
+	defer resp.Body.Close()
+	return resp.StatusCode, nil
+}
+
+func (c *SuiteClient) SetNameNoAuth(name, addr string) (int, error) {
+	req, err := http.NewRequest(http.MethodPost,
+		c.base+"/name/"+url.PathEscape(name),
+		strings.NewReader(addr))
+	if err != nil {
+		return 0, err
+	}
+	resp, err := c.hc.Do(req)
+	if err != nil {
+		return 0, err
+	}
+	defer resp.Body.Close()
+	return resp.StatusCode, nil
+}
+
+func (c *SuiteClient) AddDataWithWrongKey(r io.Reader) (int, error) {
+	req, err := http.NewRequest(http.MethodPost, c.base+"/data", r)
+	if err != nil {
+		return 0, err
+	}
+	req.Header.Set("Content-Type", "application/octet-stream")
+	req.Header.Set("X-API-Key", "wrong-key")
+	resp, err := c.hc.Do(req)
+	if err != nil {
+		return 0, err
+	}
+	defer resp.Body.Close()
+	return resp.StatusCode, nil
+}
+
+func (c *SuiteClient) WriteRequestNoAuth(method, path string, body io.Reader) (int, error) {
+	req, err := http.NewRequest(method, c.base+path, body)
+	if err != nil {
+		return 0, err
+	}
+	if body != nil {
+		req.Header.Set("Content-Type", "text/plain")
+	}
+	resp, err := c.hc.Do(req)
+	if err != nil {
+		return 0, err
+	}
+	defer resp.Body.Close()
+	// drain body
+	io.Copy(io.Discard, resp.Body)
+	return resp.StatusCode, nil
+}
+
+func (c *SuiteClient) WriteRequestWrongKey(method, path string, body io.Reader) (int, error) {
+	req, err := http.NewRequest(method, c.base+path, body)
+	if err != nil {
+		return 0, err
+	}
+	if body != nil {
+		req.Header.Set("Content-Type", "text/plain")
+	}
+	req.Header.Set("X-API-Key", "wrong-key")
+	resp, err := c.hc.Do(req)
+	if err != nil {
+		return 0, err
+	}
+	defer resp.Body.Close()
+	io.Copy(io.Discard, resp.Body)
+	return resp.StatusCode, nil
+}
+
+func (c *SuiteClient) ReadRequest(method, path string) (int, error) {
+	req, err := http.NewRequest(method, c.base+path, nil)
+	if err != nil {
+		return 0, err
+	}
+	resp, err := c.hc.Do(req)
+	if err != nil {
+		return 0, err
+	}
+	defer resp.Body.Close()
+	io.Copy(io.Discard, resp.Body)
+	return resp.StatusCode, nil
+}
+
+func (c *SuiteClient) WriteRequestWithKey(method, path, key string, body io.Reader) (int, error) {
+	req, err := http.NewRequest(method, c.base+path, body)
+	if err != nil {
+		return 0, err
+	}
+	if body != nil {
+		req.Header.Set("Content-Type", "text/plain")
+	}
+	req.Header.Set("X-API-Key", key)
+	resp, err := c.hc.Do(req)
+	if err != nil {
+		return 0, err
+	}
+	defer resp.Body.Close()
+	io.Copy(io.Discard, resp.Body)
+	return resp.StatusCode, nil
 }
