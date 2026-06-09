@@ -9,6 +9,7 @@ require (
 	github.com/getkin/kin-openapi v0.135.0
 	github.com/oapi-codegen/runtime v1.4.1
 	github.com/spf13/cobra v1.10.2
+	github.com/spf13/viper v1.19.0
 )
 
 require (
@@ -60,7 +61,6 @@ require (
 	github.com/spf13/afero v1.11.0 // indirect
 	github.com/spf13/cast v1.6.0 // indirect
 	github.com/spf13/pflag v1.0.9 // indirect
-	github.com/spf13/viper v1.19.0 // indirect
 	github.com/subosito/gotenv v1.6.0 // indirect
 	github.com/vmware-labs/yaml-jsonpath v0.3.2 // indirect
 	github.com/woodsbury/decimal128 v1.4.0 // indirect
